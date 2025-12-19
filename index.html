@@ -1,209 +1,210 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>404 Not Found</title>
+    <title>Neural Calibration</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
     <style>
-        /* THE "BROKEN" LOOK */
-        body { font-family: 'Times New Roman', Times, serif; margin: 40px; color: #000; background: #fff; }
-        h1 { font-size: 32px; font-weight: bold; margin-bottom: 20px; }
-        p { font-size: 16px; margin-bottom: 15px; }
-        hr { border: 0; border-bottom: 1px solid #ccc; margin: 20px 0; }
+        body { margin: 0; overflow: hidden; background: #000; touch-action: none; }
+        canvas { display: block; }
         
-        .error-code {
-            font-family: monospace; color: #444; font-size: 14px;
-            background: #f0f0f0; padding: 10px; display: inline-block;
-        }
-
-        /* STATUS DOT (Bottom Right) */
-        #status-dot {
-            position: fixed; bottom: 5px; right: 5px;
-            width: 8px; height: 8px; border-radius: 50%;
-            background: red; opacity: 0.5;
+        #instruction {
+            position: fixed; bottom: 30px; width: 100%; text-align: center;
+            color: #666; font-family: sans-serif; font-size: 14px; letter-spacing: 1px;
+            pointer-events: none; user-select: none;
         }
 
         /* ADMIN PANEL */
         #admin-panel {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 9999; flex-direction: column;
-            font-family: sans-serif;
+            background: #111; z-index: 999; flex-direction: column; padding: 20px; box-sizing: border-box;
         }
-        .status-bar {
-            background: #222; color: #fff; padding: 15px; text-align: center;
-            font-size: 12px; font-family: monospace; border-bottom: 1px solid #444;
-        }
-        .row { display: flex; flex: 1; width: 100%; }
+        .status { color: #888; text-align: center; margin-bottom: 20px; font-family: sans-serif; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
         .btn {
-            flex: 1; border: 1px solid #333; color: #fff; font-size: 1.5rem; 
-            display: flex; align-items: center; justify-content: center;
-            background: #111; cursor: pointer; font-weight: bold;
+            aspect-ratio: 1; background: #222; border: 2px solid #444; color: #fff;
+            font-size: 32px; font-weight: bold; font-family: sans-serif;
+            display: flex; align-items: center; justify-content: center; border-radius: 12px;
         }
-        .btn:active { background: #333; }
-        .red { color: #ff4444; } .white { color: #fff; }
+        .btn:active { background: #fff; color: #000; }
     </style>
 </head>
 <body>
 
-    <h1>Not Found</h1>
-    <p>The requested URL was not found on this server.</p>
-    
-    <div class="error-code">
-        Error 404: /uploads/cache/<span id="filename">temp_file</span>.jpg not found.<br>
-        <span id="timestamp" style="color:#666; font-size:12px">Log Time: ...</span>
-    </div>
-
-    <hr>
-    <address>Apache/2.4.41 (Ubuntu) Server at github.io Port 80</address>
-    
-    <div id="status-dot"></div>
+    <canvas id="canvas"></canvas>
+    <div id="instruction">PRESS AND HOLD SCREEN TO STABILIZE</div>
 
     <div id="admin-panel">
-        <div class="status-bar" id="admin-status">Initializing Cloud...</div>
-        
-        <div class="row">
-            <div class="btn" onclick="setVal('Ace')">A</div>
-            <div class="btn" onclick="setVal('King')">K</div>
-            <div class="btn" onclick="setVal('Queen')">Q</div>
-            <div class="btn" onclick="setVal('Jack')">J</div>
-        </div>
-        <div class="row">
-            <div class="btn" onclick="setVal('10')">10</div>
-            <div class="btn" onclick="setVal('7')">7</div>
-            <div class="btn" onclick="setVal('5')">5</div>
-            <div class="btn" onclick="setVal('2')">2</div>
-        </div>
-        <div class="row">
-            <div class="btn white" onclick="setSuit('Spades')">♠</div>
-            <div class="btn red" onclick="setSuit('Hearts')">♥</div>
-            <div class="btn white" onclick="setSuit('Clubs')">♣</div>
-            <div class="btn red" onclick="setSuit('Diamonds')">♦</div>
-        </div>
-        <div class="row" style="flex:0.4">
-             <div class="btn" style="background:#220000" onclick="sendData()">UPDATE LOG</div>
+        <div class="status" id="admin-status">CONNECTING...</div>
+        <div class="grid">
+            <div class="btn" onclick="sendTarget('1')">1</div>
+            <div class="btn" onclick="setTarget('2')">2</div>
+            <div class="btn" onclick="sendTarget('3')">3</div>
+            <div class="btn" onclick="sendTarget('4')">4</div>
+            <div class="btn" onclick="sendTarget('5')">5</div>
+            <div class="btn" onclick="sendTarget('6')">6</div>
+            <div class="btn" onclick="sendTarget('7')">7</div>
+            <div class="btn" onclick="sendTarget('8')">8</div>
+            <div class="btn" onclick="sendTarget('9')">9</div>
+            <div class="btn" style="grid-column: 2;" onclick="sendTarget('0')">0</div>
         </div>
     </div>
 
 <script>
-    // --- SETUP ---
-    const urlParams = new URLSearchParams(window.location.search);
-    const isAdmin = urlParams.get('mode') === 'admin';
-    
-    // ID Logic (from URL hash)
-    const cleanHash = window.location.hash.replace('#', '');
-    const uniqueID = cleanHash || '69'; // Default to 69 if empty
-    
-    // MQTT CONFIG (Public HiveMQ Broker)
+    // --- CONFIG ---
+    const uniqueID = window.location.hash.replace('#', '') || '69';
+    const isAdmin = window.location.search.includes('admin');
+    const PARTICLE_COUNT = 2000; // Adjust for performance if needed
+
+    // MQTT SETUP
     const broker = "broker.hivemq.com";
     const port = 8000;
-    const topic = "ishihara/magic/" + uniqueID; // Specific topic for your ID
-    const clientID = "client-" + Math.random().toString(16).substr(2, 8);
-
-    // TIMESTAMP LOGIC
-    const timeSpan = document.getElementById('timestamp');
-    const now = new Date();
-    now.setDate(now.getDate() - 1);
-    const dateStr = now.toISOString().slice(0, 10);
-    timeSpan.innerText = "Log Timestamp: " + dateStr + " 11:42:09 UTC";
-
-    // VARS
+    const topic = "ishihara/dots/" + uniqueID;
+    const clientID = "user-" + Math.random().toString(16).substr(2, 8);
     let client = new Paho.MQTT.Client(broker, port, clientID);
-    let pVal = "temp_file";
-    let pSuit = "";
-    const statusDot = document.getElementById('status-dot');
-    const adminStatus = document.getElementById('admin-status');
 
-    // --- CONNECTION FUNCTIONS ---
+    // VISUAL ENGINE SETUP
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let w, h;
+    let particles = [];
+    let targetShape = null; // The number they are thinking of
+    let isTouching = false; // Is the spectator holding the screen?
 
+    // --- CONNECTION LOGIC ---
     function onConnect() {
         console.log("Connected to Cloud");
-        
-        if (isAdmin) {
-            adminStatus.innerText = "CLOUD CONNECTED (ID: "+uniqueID+")";
-            adminStatus.style.color = "#0f0"; // Green text
+        if(isAdmin) {
+            document.getElementById('admin-status').innerText = "ONLINE ID: " + uniqueID;
+            document.getElementById('admin-status').style.color = "#0f0";
         } else {
-            // Spectator subscribes to messages
             client.subscribe(topic);
-            statusDot.style.background = "#0f0"; // Green Dot
+            document.getElementById('instruction').style.color = "#aaa"; // brighten text when ready
         }
-        
-        if(navigator.vibrate) navigator.vibrate(50);
     }
 
-    function onConnectionLost(responseObject) {
-        if (responseObject.errorCode !== 0) {
-            console.log("Connection Lost: " + responseObject.errorMessage);
-            if(isAdmin) {
-                adminStatus.innerText = "LOST CONNECTION. Refreshing...";
-                adminStatus.style.color = "red";
-            } else {
-                statusDot.style.background = "red";
+    function onMessageArrived(msg) {
+        // Spectator receives target shape quietly
+        targetShape = msg.payloadString;
+        console.log("Target received: " + targetShape);
+    }
+
+    client.connect({ onSuccess: onConnect, useSSL: false });
+
+    // --- ADMIN LOGIC ---
+    if(isAdmin) document.getElementById('admin-panel').style.display = 'flex';
+
+    function sendTarget(num) {
+        const message = new Paho.MQTT.Message(num);
+        message.destinationName = topic;
+        client.send(message);
+        vibe(50);
+        document.getElementById('admin-status').innerText = "SENT: " + num;
+    }
+
+    // --- SPECTATOR INTERACTION ---
+    if(!isAdmin) {
+        // Trigger on press
+        document.addEventListener('touchstart', (e) => { e.preventDefault(); startAttract(); }, {passive: false});
+        document.addEventListener('mousedown', startAttract);
+        
+        // Release on lift
+        document.addEventListener('touchend', stopAttract);
+        document.addEventListener('mouseup', stopAttract);
+    }
+
+    function startAttract() {
+        if(targetShape) {
+            isTouching = true;
+            vibe(100); // Haptic kick when they touch
+            document.getElementById('instruction').innerText = "ANALYZING...";
+            document.getElementById('instruction').style.color = "#fff";
+        }
+    }
+
+    function stopAttract() {
+        isTouching = false;
+        document.getElementById('instruction').innerText = "PRESS AND HOLD SCREEN TO STABILIZE";
+        document.getElementById('instruction').style.color = "#aaa";
+    }
+
+    function vibe(p) { if(navigator.vibrate) navigator.vibrate(p); }
+
+    // --- VISUAL PHYSICS ENGINE ---
+    class Particle {
+        constructor() {
+            this.x = Math.random() * w;
+            this.y = Math.random() * h;
+            this.vx = (Math.random() - 0.5) * 2;
+            this.vy = (Math.random() - 0.5) * 2;
+            this.baseX = this.x; this.baseY = this.y;
+            this.size = Math.random() * 1.5 + 0.5;
+            this.color = '#ffffff';
+            this.alpha = Math.random() * 0.5 + 0.1;
+        }
+        update() {
+            // CHAOS MODE
+            if (!isTouching || !targetShape) {
+                this.x += this.vx;
+                this.y += this.vy;
+                // Bounce off walls
+                if(this.x < 0 || this.x > w) this.vx *= -1;
+                if(this.y < 0 || this.y > h) this.vy *= -1;
+                this.alpha = Math.random() * 0.5 + 0.1; // flicker
+            } 
+            // ATTRACT MODE (FORM SHAPE)
+            else {
+                // Simple shape mapping (normalized 0.0 - 1.0)
+                let tx, ty;
+                // Define rough shapes (could be refined)
+                if(targetShape === '7') {
+                    if(this.baseX/w < 0.5) { tx = 0.2 + Math.random()*0.6; ty = 0.2 + Math.random()*0.1; } // top bar
+                    else { tx = 0.8 - (this.baseY/h)*0.6; ty = 0.2 + this.baseY/h*0.6; } // diagonal
+                } else if (targetShape === '3') {
+                     tx = 0.7 + Math.cos(this.baseY/h * Math.PI * 3) * 0.2; ty = this.baseY/h;
+                     if(tx > 0.8) tx = 0.8;
+                } else if (targetShape === '1') {
+                     tx = 0.5 + (Math.random()-0.5)*0.05; ty = 0.2 + Math.random()*0.6;
+                } else if (targetShape === '0') {
+                     let angle = Math.random() * Math.PI * 2;
+                     tx = 0.5 + Math.cos(angle)*0.3; ty = 0.5 + Math.sin(angle)*0.3 * (w/h);
+                } else {
+                     // Default block for other numbers for now
+                     tx = 0.4 + Math.random()*0.2; ty = 0.4 + Math.random()*0.2;
+                }
+
+                // Move towards target
+                let targetXPixel = tx * w;
+                let targetYPixel = ty * h;
+                this.x += (targetXPixel - this.x) * 0.1; // Easing
+                this.y += (targetYPixel - this.y) * 0.1;
+                this.alpha = 1.0; // Bright when forming
             }
-            // Auto-reconnect after 2 seconds
-            setTimeout(connectMQTT, 2000); 
+        }
+        draw() {
+            ctx.globalAlpha = this.alpha;
+            ctx.fillStyle = this.color;
+            ctx.fillRect(this.x, this.y, this.size, this.size);
         }
     }
 
-    function onMessageArrived(message) {
-        // Only Spectator receives this
-        console.log("Message Arrived: " + message.payloadString);
-        
-        const fileSpan = document.getElementById('filename');
-        const cleanName = message.payloadString.toLowerCase().replace(/ /g, '_');
-        fileSpan.innerText = "img_" + cleanName;
-        
-        // Slight visual flicker to simulate refresh? Optional.
-        // fileSpan.style.opacity = 0;
-        // setTimeout(()=> fileSpan.style.opacity = 1, 100);
+    function init() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+        particles = [];
+        for(let i=0; i<PARTICLE_COUNT; i++) particles.push(new Particle());
     }
 
-    function connectMQTT() {
-        if(isAdmin) adminStatus.innerText = "Connecting to Cloud...";
-        
-        client.connect({
-            onSuccess: onConnect,
-            onFailure: (err) => { 
-                console.log("Failed", err); 
-                if(isAdmin) adminStatus.innerText = "Server Blocked. Try LTE.";
-                setTimeout(connectMQTT, 5000); 
-            },
-            useSSL: false // Try false first for better compatibility on free brokers
-        });
+    function animate() {
+        ctx.clearRect(0, 0, w, h);
+        particles.forEach(p => { p.update(); p.draw(); });
+        requestAnimationFrame(animate);
     }
 
-    // --- INIT ---
-    client.onConnectionLost = onConnectionLost;
-    client.onMessageArrived = onMessageArrived;
-    
-    if(isAdmin) {
-        document.getElementById('admin-panel').style.display = 'flex';
-    }
-    
-    // START CONNECTION
-    connectMQTT();
-
-    // --- ADMIN BUTTONS ---
-    function setVal(v) { pVal = v; if(navigator.vibrate) navigator.vibrate(10); }
-    function setSuit(s) { pSuit = s; if(navigator.vibrate) navigator.vibrate(10); }
-
-    function sendData() {
-        if(client.isConnected()) {
-            const payload = pVal + "_" + pSuit;
-            const message = new Paho.MQTT.Message(payload);
-            message.destinationName = topic;
-            client.send(message);
-            
-            if(navigator.vibrate) navigator.vibrate([50, 50]);
-            
-            // Admin Feedback
-            const oldText = adminStatus.innerText;
-            adminStatus.innerText = "SENT >> " + payload;
-            setTimeout(() => { adminStatus.innerText = oldText; }, 2000);
-        } else {
-            alert("Not connected to cloud yet! Wait for green text.");
-        }
-    }
+    window.addEventListener('resize', init);
+    init();
+    animate();
 
 </script>
 </body>

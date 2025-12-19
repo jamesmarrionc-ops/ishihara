@@ -3,207 +3,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neural Calibration</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <title>Visual Signal Test</title>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; touch-action: none; }
-        canvas { display: block; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
+        canvas { display: block; width: 100vw; height: 100vh; }
         
-        #instruction {
-            position: fixed; bottom: 30px; width: 100%; text-align: center;
-            color: #666; font-family: sans-serif; font-size: 14px; letter-spacing: 1px;
-            pointer-events: none; user-select: none;
-        }
-
-        /* ADMIN PANEL */
+        /* ADMIN PANEL STYLES */
         #admin-panel {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #111; z-index: 999; flex-direction: column; padding: 20px; box-sizing: border-box;
+            background: #111; z-index: 999; flex-direction: column;
         }
-        .status { color: #888; text-align: center; margin-bottom: 20px; font-family: sans-serif; }
-        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
         .btn {
-            aspect-ratio: 1; background: #222; border: 2px solid #444; color: #fff;
-            font-size: 32px; font-weight: bold; font-family: sans-serif;
-            display: flex; align-items: center; justify-content: center; border-radius: 12px;
+            flex: 1; border: 1px solid #333; color: #fff; font-size: 3rem; font-weight: bold;
+            display: flex; align-items: center; justify-content: center;
+            background: #000; text-transform: uppercase;
         }
-        .btn:active { background: #fff; color: #000; }
+        .btn:active { background: #0f0; color: #000; } /* Flash green on press */
+        
+        #status-text {
+            position: absolute; bottom: 20px; width: 100%; text-align: center;
+            color: #666; font-size: 12px; pointer-events: none; letter-spacing: 2px;
+        }
     </style>
 </head>
 <body>
 
     <canvas id="canvas"></canvas>
-    <div id="instruction">PRESS AND HOLD SCREEN TO STABILIZE</div>
+    <div id="status-text">SIGNAL NOISE: 100%</div>
 
     <div id="admin-panel">
-        <div class="status" id="admin-status">CONNECTING...</div>
-        <div class="grid">
-            <div class="btn" onclick="sendTarget('1')">1</div>
-            <div class="btn" onclick="setTarget('2')">2</div>
-            <div class="btn" onclick="sendTarget('3')">3</div>
-            <div class="btn" onclick="sendTarget('4')">4</div>
-            <div class="btn" onclick="sendTarget('5')">5</div>
-            <div class="btn" onclick="sendTarget('6')">6</div>
-            <div class="btn" onclick="sendTarget('7')">7</div>
-            <div class="btn" onclick="sendTarget('8')">8</div>
-            <div class="btn" onclick="sendTarget('9')">9</div>
-            <div class="btn" style="grid-column: 2;" onclick="sendTarget('0')">0</div>
-        </div>
+        <div class="btn" style="border-bottom: 2px solid #333" onclick="trigger('7')">FORCE 7</div>
+        <div class="btn" style="border-bottom: 2px solid #333" onclick="trigger('5')">FORCE 5</div>
+        <div class="btn" style="color: #f55" onclick="trigger('stop')">STOP</div>
     </div>
 
 <script>
-    // --- CONFIG ---
-    const uniqueID = window.location.hash.replace('#', '') || '69';
-    const isAdmin = window.location.search.includes('admin');
-    const PARTICLE_COUNT = 2000; // Adjust for performance if needed
+    // --- SETUP & CONNECTION ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const isAdmin = urlParams.get('mode') === 'admin';
+    const hashID = window.location.hash.replace('#', '') || 'demo';
+    const idPrefix = 'phantom-v2-User-'; 
 
-    // MQTT SETUP
-    const broker = "broker.hivemq.com";
-    const port = 8000;
-    const topic = "ishihara/dots/" + uniqueID;
-    const clientID = "user-" + Math.random().toString(16).substr(2, 8);
-    let client = new Paho.MQTT.Client(broker, port, clientID);
+    let peer = null;
+    let conn = null;
 
-    // VISUAL ENGINE SETUP
+    if (isAdmin) {
+        document.getElementById('admin-panel').style.display = 'flex';
+        peer = new Peer(); 
+        peer.on('open', () => {
+            let targetCode = prompt("Enter Code (e.g. 123):", "123");
+            if(targetCode) conn = peer.connect(idPrefix + targetCode);
+        });
+    } else {
+        peer = new Peer(idPrefix + hashID);
+        peer.on('open', (id) => { document.getElementById('status-text').innerText = "CALIBRATION READY"; });
+        peer.on('connection', (c) => { 
+            conn = c;
+            conn.on('data', (data) => { if (data.action === 'shape') currentShape = data.value; });
+        });
+    }
+
+    function trigger(shape) {
+        if (conn) conn.send({ action: 'shape', value: shape === 'stop' ? null : shape });
+        currentShape = shape === 'stop' ? null : shape;
+    }
+
+    // --- VISUAL ENGINE (HIGH CONTRAST) ---
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    let w, h;
+    let width, height;
     let particles = [];
-    let targetShape = null; // The number they are thinking of
-    let isTouching = false; // Is the spectator holding the screen?
+    let currentShape = null;
 
-    // --- CONNECTION LOGIC ---
-    function onConnect() {
-        console.log("Connected to Cloud");
-        if(isAdmin) {
-            document.getElementById('admin-status').innerText = "ONLINE ID: " + uniqueID;
-            document.getElementById('admin-status').style.color = "#0f0";
-        } else {
-            client.subscribe(topic);
-            document.getElementById('instruction').style.color = "#aaa"; // brighten text when ready
-        }
-    }
-
-    function onMessageArrived(msg) {
-        // Spectator receives target shape quietly
-        targetShape = msg.payloadString;
-        console.log("Target received: " + targetShape);
-    }
-
-    client.connect({ onSuccess: onConnect, useSSL: false });
-
-    // --- ADMIN LOGIC ---
-    if(isAdmin) document.getElementById('admin-panel').style.display = 'flex';
-
-    function sendTarget(num) {
-        const message = new Paho.MQTT.Message(num);
-        message.destinationName = topic;
-        client.send(message);
-        vibe(50);
-        document.getElementById('admin-status').innerText = "SENT: " + num;
-    }
-
-    // --- SPECTATOR INTERACTION ---
-    if(!isAdmin) {
-        // Trigger on press
-        document.addEventListener('touchstart', (e) => { e.preventDefault(); startAttract(); }, {passive: false});
-        document.addEventListener('mousedown', startAttract);
-        
-        // Release on lift
-        document.addEventListener('touchend', stopAttract);
-        document.addEventListener('mouseup', stopAttract);
-    }
-
-    function startAttract() {
-        if(targetShape) {
-            isTouching = true;
-            vibe(100); // Haptic kick when they touch
-            document.getElementById('instruction').innerText = "ANALYZING...";
-            document.getElementById('instruction').style.color = "#fff";
-        }
-    }
-
-    function stopAttract() {
-        isTouching = false;
-        document.getElementById('instruction').innerText = "PRESS AND HOLD SCREEN TO STABILIZE";
-        document.getElementById('instruction').style.color = "#aaa";
-    }
-
-    function vibe(p) { if(navigator.vibrate) navigator.vibrate(p); }
-
-    // --- VISUAL PHYSICS ENGINE ---
-    class Particle {
-        constructor() {
-            this.x = Math.random() * w;
-            this.y = Math.random() * h;
-            this.vx = (Math.random() - 0.5) * 2;
-            this.vy = (Math.random() - 0.5) * 2;
-            this.baseX = this.x; this.baseY = this.y;
-            this.size = Math.random() * 1.5 + 0.5;
-            this.color = '#ffffff';
-            this.alpha = Math.random() * 0.5 + 0.1;
-        }
-        update() {
-            // CHAOS MODE
-            if (!isTouching || !targetShape) {
-                this.x += this.vx;
-                this.y += this.vy;
-                // Bounce off walls
-                if(this.x < 0 || this.x > w) this.vx *= -1;
-                if(this.y < 0 || this.y > h) this.vy *= -1;
-                this.alpha = Math.random() * 0.5 + 0.1; // flicker
-            } 
-            // ATTRACT MODE (FORM SHAPE)
-            else {
-                // Simple shape mapping (normalized 0.0 - 1.0)
-                let tx, ty;
-                // Define rough shapes (could be refined)
-                if(targetShape === '7') {
-                    if(this.baseX/w < 0.5) { tx = 0.2 + Math.random()*0.6; ty = 0.2 + Math.random()*0.1; } // top bar
-                    else { tx = 0.8 - (this.baseY/h)*0.6; ty = 0.2 + this.baseY/h*0.6; } // diagonal
-                } else if (targetShape === '3') {
-                     tx = 0.7 + Math.cos(this.baseY/h * Math.PI * 3) * 0.2; ty = this.baseY/h;
-                     if(tx > 0.8) tx = 0.8;
-                } else if (targetShape === '1') {
-                     tx = 0.5 + (Math.random()-0.5)*0.05; ty = 0.2 + Math.random()*0.6;
-                } else if (targetShape === '0') {
-                     let angle = Math.random() * Math.PI * 2;
-                     tx = 0.5 + Math.cos(angle)*0.3; ty = 0.5 + Math.sin(angle)*0.3 * (w/h);
-                } else {
-                     // Default block for other numbers for now
-                     tx = 0.4 + Math.random()*0.2; ty = 0.4 + Math.random()*0.2;
-                }
-
-                // Move towards target
-                let targetXPixel = tx * w;
-                let targetYPixel = ty * h;
-                this.x += (targetXPixel - this.x) * 0.1; // Easing
-                this.y += (targetYPixel - this.y) * 0.1;
-                this.alpha = 1.0; // Bright when forming
-            }
-        }
-        draw() {
-            ctx.globalAlpha = this.alpha;
-            ctx.fillStyle = this.color;
-            ctx.fillRect(this.x, this.y, this.size, this.size);
-        }
-    }
-
-    function init() {
-        w = canvas.width = window.innerWidth;
-        h = canvas.height = window.innerHeight;
+    function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        // INCREASED DENSITY: 6000 particles for better visibility
         particles = [];
-        for(let i=0; i<PARTICLE_COUNT; i++) particles.push(new Particle());
+        for(let i=0; i<6000; i++) {
+            particles.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                vx: 0, vy: 0
+            });
+        }
+    }
+    window.addEventListener('resize', resize);
+
+    // THICKER SHAPE LOGIC
+    function inShape(x, y, shape) {
+        let nx = x / width; // 0.0 to 1.0
+        let ny = y / height; // 0.0 to 1.0
+        
+        // Helper for rectangles (x1, x2, y1, y2)
+        const rect = (x1, x2, y1, y2) => nx > x1 && nx < x2 && ny > y1 && ny < y2;
+
+        if(shape === '7') {
+            // Top Bar (Thick)
+            if (rect(0.2, 0.8, 0.15, 0.3)) return true;
+            // Diagonal Stroke (Thick)
+            // Logic: Is x close to the diagonal line?
+            let idealX = 0.8 - ((ny - 0.3) * 0.8); // Slope math
+            if (nx > idealX - 0.08 && nx < idealX + 0.08 && ny > 0.3 && ny < 0.85) return true;
+        }
+
+        if(shape === '5') {
+            if (rect(0.3, 0.75, 0.15, 0.25)) return true; // Top
+            if (rect(0.3, 0.45, 0.25, 0.45)) return true; // Left down
+            if (rect(0.3, 0.75, 0.45, 0.55)) return true; // Middle
+            if (rect(0.6, 0.75, 0.55, 0.75)) return true; // Right down
+            if (rect(0.3, 0.75, 0.75, 0.85)) return true; // Bottom
+        }
+        return false;
     }
 
     function animate() {
-        ctx.clearRect(0, 0, w, h);
-        particles.forEach(p => { p.update(); p.draw(); });
+        // Clear screen
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, width, height);
+
+        particles.forEach(p => {
+            let isInside = currentShape ? inShape(p.x, p.y, currentShape) : false;
+
+            if (isInside) {
+                // INSIDE: BRIGHT WHITE, FLOWING RIGHT
+                ctx.fillStyle = '#FFFFFF'; 
+                p.x += 5; // Fast flow
+                p.y += (Math.random() - 0.5); // Slight jitter
+            } else {
+                // OUTSIDE: DARK GREY, RANDOM JITTER
+                ctx.fillStyle = currentShape ? '#222' : '#555'; // Darker when shape is active to increase contrast
+                p.x += (Math.random() - 0.5) * 4;
+                p.y += (Math.random() - 0.5) * 4;
+            }
+
+            // Wrap edges
+            if(p.x > width) p.x = 0;
+            if(p.x < 0) p.x = width;
+
+            // Draw Dot
+            ctx.fillRect(p.x, p.y, 2.5, 2.5); // Bigger dots
+        });
+
         requestAnimationFrame(animate);
     }
 
-    window.addEventListener('resize', init);
-    init();
+    resize();
     animate();
 
 </script>

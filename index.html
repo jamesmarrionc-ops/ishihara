@@ -1,125 +1,94 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Synchronicity - Wikipedia</title>
+    <title>404 Not Found</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
-        /* WIKIPEDIA MOBILE STYLING */
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #fff; color: #222; line-height: 1.6; }
+        /* THE "BROKEN" LOOK - NO STYLING */
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            margin: 40px;
+            color: #000;
+            background: #fff;
+        }
+        h1 {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        p {
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        hr {
+            border: 0;
+            border-bottom: 1px solid #ccc;
+            margin: 20px 0;
+        }
+        .error-code {
+            font-family: monospace;
+            color: #444;
+            font-size: 14px;
+            background: #f0f0f0;
+            padding: 10px;
+            display: inline-block;
+        }
         
-        /* HEADER */
-        .header { display: flex; align-items: center; padding: 12px 16px; background: #fff; border-bottom: 1px solid #a2a9b1; position: sticky; top: 0; z-index: 10; }
-        .menu-icon { font-size: 20px; color: #555; margin-right: 15px; }
-        .logo { font-size: 1.2rem; font-weight: bold; font-family: 'Times New Roman', serif; flex: 1; letter-spacing: -0.5px; }
-        .search-icon { font-size: 20px; color: #555; }
-
-        /* CONTENT */
-        .content { padding: 16px; max-width: 800px; margin: 0 auto; }
-        h1 { font-family: 'Times New Roman', serif; font-size: 2rem; margin-bottom: 5px; font-weight: 400; border-bottom: 1px solid #a2a9b1; padding-bottom: 10px; }
-        .subtitle { font-size: 0.9rem; color: #555; margin-bottom: 20px; }
-        
-        p { margin-bottom: 16px; font-size: 1rem; }
-        
-        /* WIKI LINKS */
-        a { color: #3366cc; text-decoration: none; }
-        a:visited { color: #3366cc; } /* Hide visited status */
-        
-        /* INFO BOX */
-        .infobox { border: 1px solid #a2a9b1; background: #f8f9fa; padding: 10px; font-size: 0.9rem; float: right; width: 30%; margin-left: 15px; display: none; } 
-        @media (min-width: 600px) { .infobox { display: block; } }
-
-        /* SECTION HEADERS */
-        h2 { font-size: 1.5rem; border-bottom: 1px solid #a2a9b1; padding-bottom: 5px; margin-top: 30px; font-weight: 400; font-family: 'Times New Roman', serif; }
-
         /* ADMIN PANEL (Hidden) */
         #admin-panel {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #eee; z-index: 9999; flex-direction: column; font-family: sans-serif;
+            background: #000; z-index: 9999; flex-direction: column;
+            font-family: sans-serif;
         }
-        .admin-row { display: flex; flex: 1; border-bottom: 1px solid #ccc; }
-        .btn { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold; background: #fff; border-right: 1px solid #ccc; cursor: pointer; }
-        .btn:active { background: #ddd; }
-        .suit-btn { font-size: 2rem; }
-        .red { color: red; } .black { color: black; }
-        
-        /* INPUT AREA */
-        #custom-input { padding: 20px; font-size: 1.5rem; border: none; text-align: center; }
-
+        .row { display: flex; flex: 1; width: 100%; }
+        .btn {
+            flex: 1; border: 1px solid #333; color: #fff; font-size: 1.5rem; 
+            display: flex; align-items: center; justify-content: center;
+            background: #111; cursor: pointer; font-weight: bold;
+        }
+        .btn:active { background: #333; }
+        .red { color: #ff4444; } .white { color: #fff; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <div class="menu-icon">☰</div>
-        <div class="logo">Wikipedia</div>
-        <div class="search-icon">🔍</div>
+    <h1>Not Found</h1>
+    <p>The requested URL was not found on this server.</p>
+    
+    <div class="error-code">
+        Error 404: /uploads/cache/<span id="filename">temp_file</span>.jpg not found.<br>
+        <span id="timestamp" style="color:#666; font-size:12px">Log Time: ...</span>
     </div>
 
-    <div class="content">
-        <h1>Synchronicity</h1>
-        <div class="subtitle">Concept first introduced by analytical psychologist Carl Jung</div>
-
-        <p><b>Synchronicity</b> (German: <i>Synchronizität</i>) is a concept first introduced by analytical psychologist <a href="#">Carl Jung</a>, which holds that events are "meaningful coincidences" if they occur with no causal relationship yet seem to be meaningfully related.</p>
-
-        <p>During his career, Jung furnished several different definitions of the term, defining it as an "acausal connecting (togetherness) principle," "meaningful coincidence", and "acausal parallelism."</p>
-
-        <h2>History</h2>
-        <p>The concept was first discussed in 1920, but Jung did not publish a full paper on it until 1952. Jung used the concept to argue for the existence of the paranormal.</p>
-
-        <h2>Notable Examples</h2>
-        <p>One of Jung's favorite examples involved a scarab beetle. A patient was describing a dream about a golden scarab, and at that very moment, a real scarab beetle tapped against the window.</p>
-
-        <p>Another frequently cited case involves the "Plum Pudding" coincidence involving the French poet <a href="#">Émile Deschamps</a>.</p>
-
-        <h2>The Observer Effect</h2>
-        <p>In quantum physics, the observer effect relates to changes that the act of observation will make on a phenomenon being observed.</p>
-        
-        <p id="prediction-text">
-            Recent statistical anomalies suggest that human thought can influence probability. In a documented 2024 case, a randomized subject named <span id="subj-name">Subject A</span> selected the <b id="card-reveal">Ace of Spades</b> despite a statistical probability of 1 in 52.
-        </p>
-
-        <h2>See also</h2>
-        <ul>
-            <li><a href="#">Apophenia</a></li>
-            <li><a href="#">Coincidence</a></li>
-            <li><a href="#">Littlewood's law</a></li>
-            <li><a href="#">Serendipity</a></li>
-        </ul>
-
-        <br><br><br>
-        <div style="text-align:center; font-size: 0.8rem; color: #777;">
-            Text is available under the Creative Commons Attribution-ShareAlike License.<br>
-            Last edited 2 days ago.
-        </div>
-    </div>
+    <hr>
+    <address>Apache/2.4.41 (Ubuntu) Server at github.io Port 80</address>
 
     <div id="admin-panel">
-        <input type="text" id="custom-name" placeholder="Subject Name (Optional)" style="padding:15px; font-size:1.2rem; text-align:center;">
-        
-        <div class="admin-row">
-            <div class="btn" onclick="setVal('A')">A</div>
-            <div class="btn" onclick="setVal('K')">K</div>
-            <div class="btn" onclick="setVal('Q')">Q</div>
-            <div class="btn" onclick="setVal('J')">J</div>
+        <div class="row" style="flex:0.3; color:#888; align-items:center; justify-content:center;">
+            SYSTEM LINKED
         </div>
-        <div class="admin-row">
+        <div class="row">
+            <div class="btn" onclick="setVal('Ace')">A</div>
+            <div class="btn" onclick="setVal('King')">K</div>
+            <div class="btn" onclick="setVal('Queen')">Q</div>
+            <div class="btn" onclick="setVal('Jack')">J</div>
+        </div>
+        <div class="row">
             <div class="btn" onclick="setVal('10')">10</div>
             <div class="btn" onclick="setVal('7')">7</div>
             <div class="btn" onclick="setVal('5')">5</div>
-            <div class="btn" onclick="setVal('3')">3</div>
+            <div class="btn" onclick="setVal('2')">2</div>
         </div>
-
-        <div class="admin-row">
-            <div class="btn suit-btn black" onclick="setSuit('Spades')">♠</div>
-            <div class="btn suit-btn red" onclick="setSuit('Hearts')">♥</div>
-            <div class="btn suit-btn black" onclick="setSuit('Clubs')">♣</div>
-            <div class="btn suit-btn red" onclick="setSuit('Diamonds')">♦</div>
+        <div class="row">
+            <div class="btn white" onclick="setSuit('Spades')">♠</div>
+            <div class="btn red" onclick="setSuit('Hearts')">♥</div>
+            <div class="btn white" onclick="setSuit('Clubs')">♣</div>
+            <div class="btn red" onclick="setSuit('Diamonds')">♦</div>
         </div>
-
-        <div class="admin-row">
-            <div class="btn" style="background:#ddd" onclick="sendData()">SEND PREDICTION</div>
+        <div class="row" style="flex:0.4">
+             <div class="btn" style="background:#220000" onclick="sendData()">UPDATE SERVER LOG</div>
         </div>
     </div>
 
@@ -127,83 +96,61 @@
     // --- SETUP ---
     const urlParams = new URLSearchParams(window.location.search);
     const isAdmin = urlParams.get('mode') === 'admin';
-    const hashID = window.location.hash.replace('#', '') || 'wiki-reader';
-    const idPrefix = 'wiki-effect-v1-'; 
+    const hashID = window.location.hash.replace('#', '') || 'error-log';
+    const idPrefix = 'glitch-404-v2-'; 
+
+    // GENERATE FAKE TIMESTAMP (YESTERDAY)
+    const timeSpan = document.getElementById('timestamp');
+    const now = new Date();
+    now.setDate(now.getDate() - 1); // Yesterday
+    // Format: "2024-10-12 23:42:05 UTC"
+    const dateStr = now.toISOString().slice(0, 10);
+    timeSpan.innerText = "Log Timestamp: " + dateStr + " 11:42:09 UTC";
 
     let peer = null;
     let conn = null;
     
-    // Prediction Variables
-    let pVal = "Ace";
-    let pSuit = "Spades";
+    // Prediction Vars
+    let pVal = "temp_file";
+    let pSuit = "";
 
-    // --- LOGIC ---
+    // --- CONNECTION ---
     if (isAdmin) {
         document.getElementById('admin-panel').style.display = 'flex';
         peer = new Peer(); 
         peer.on('open', () => {
-            let target = prompt("Enter Spectator ID (from URL #):", "123");
-            if(target) {
-                conn = peer.connect(idPrefix + target);
-                conn.on('open', () => alert("CONNECTED to Wiki Page"));
-            }
+            let target = prompt("Enter ID (URL #):", "123");
+            if(target) conn = peer.connect(idPrefix + target);
         });
     } else {
-        // SPECTATOR
         peer = new Peer(idPrefix + hashID);
         peer.on('connection', (c) => {
             conn = c;
             conn.on('data', (data) => {
-                updatePage(data);
+                // Update the filename in the error log
+                const fileSpan = document.getElementById('filename');
+                const cleanName = data.text.toLowerCase().replace(/ /g, '_');
+                fileSpan.innerText = "img_" + cleanName;
+                
+                // Optional: Flash slightly to show update happened? No, keep it static.
             });
         });
     }
 
-    // --- ADMIN FUNCTIONS ---
-    function setVal(v) { pVal = v; if(navigator.vibrate) navigator.vibrate(20); }
-    function setSuit(s) { pSuit = s; if(navigator.vibrate) navigator.vibrate(20); }
-    
+    // --- ADMIN CONTROLS ---
+    function setVal(v) { pVal = v; vibe(15); }
+    function setSuit(s) { pSuit = s; vibe(15); }
+
     function sendData() {
-        const name = document.getElementById('custom-name').value || "the subject";
         if(conn) {
-            conn.send({ val: pVal, suit: pSuit, name: name });
-            if(navigator.vibrate) navigator.vibrate([50,50,50]);
-            alert("SENT: " + pVal + " " + pSuit);
+            conn.send({ text: pVal + "_" + pSuit });
+            vibe([50, 50]); // Success
         }
     }
 
-    // --- SPECTATOR FUNCTIONS ---
-    function updatePage(data) {
-        const text = document.getElementById('prediction-text');
-        const cardSpan = document.getElementById('card-reveal');
-        const nameSpan = document.getElementById('subj-name');
-
-        // Update the content
-        let cardName = "";
-        if(data.val === "10") cardName = "Ten";
-        else if(data.val === "A") cardName = "Ace";
-        else if(data.val === "K") cardName = "King";
-        else if(data.val === "Q") cardName = "Queen";
-        else if(data.val === "J") cardName = "Jack";
-        else cardName = data.val;
-
-        cardSpan.innerText = cardName + " of " + data.suit;
-        nameSpan.innerText = data.name;
-
-        // Visual flash (optional, subtle)
-        // text.style.backgroundColor = "#fffaaa";
-        // setTimeout(() => text.style.backgroundColor = "transparent", 1000);
+    function vibe(pattern) {
+        if(navigator.vibrate) navigator.vibrate(pattern);
     }
-
-    // --- HECKLER PROOFING (Fake Links) ---
-    document.querySelectorAll('a').forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            // Just reload or do nothing to simulate a static feeling or slow connection
-            // Ideally, open a real wiki page in new tab? No, keep them here.
-            alert("Redirecting to Wikipedia Archives... (Connection Slow)");
-        });
-    });
 
 </script>
 </body>

@@ -17,11 +17,11 @@
             background: #f0f0f0; padding: 10px; display: inline-block;
         }
 
-        /* STATUS DOT (Hidden in plain sight) */
+        /* STATUS DOT (Bottom Right) */
         #status-dot {
             position: fixed; bottom: 5px; right: 5px;
-            width: 4px; height: 4px; border-radius: 50%;
-            background: red; opacity: 0.3; /* Subtle */
+            width: 8px; height: 8px; border-radius: 50%;
+            background: red; opacity: 0.5;
         }
 
         /* ADMIN PANEL */
@@ -31,8 +31,8 @@
             font-family: sans-serif;
         }
         .status-bar {
-            background: #333; color: #aaa; padding: 15px; text-align: center;
-            font-size: 14px; font-weight: bold; letter-spacing: 1px;
+            background: #222; color: #fff; padding: 15px; text-align: center;
+            font-size: 12px; font-family: monospace; border-bottom: 1px solid #444;
         }
         .row { display: flex; flex: 1; width: 100%; }
         .btn {
@@ -58,9 +58,10 @@
     <address>Apache/2.4.41 (Ubuntu) Server at github.io Port 80</address>
     
     <div id="status-dot"></div>
+    <div id="debug-id" style="display:none; position:fixed; bottom:20px; right:5px; font-size:10px; color:#aaa;"></div>
 
     <div id="admin-panel">
-        <div class="status-bar" id="admin-status">DISCONNECTED</div>
+        <div class="status-bar" id="admin-status">Initializing...</div>
         
         <div class="row">
             <div class="btn" onclick="setVal('Ace')">A</div>
@@ -81,7 +82,7 @@
             <div class="btn red" onclick="setSuit('Diamonds')">♦</div>
         </div>
         <div class="row" style="flex:0.4">
-             <div class="btn" style="background:#220000" onclick="sendData()">UPDATE SERVER LOG</div>
+             <div class="btn" style="background:#220000" onclick="sendData()">UPDATE LOG</div>
         </div>
     </div>
 
@@ -90,16 +91,26 @@
     const urlParams = new URLSearchParams(window.location.search);
     const isAdmin = urlParams.get('mode') === 'admin';
     
-    // ID LOGIC: If no hash, default to 'demo'. 
-    // Example: site.com/#123 -> ID is '123'
+    // Clean ID Logic
     const cleanHash = window.location.hash.replace('#', '');
     const uniqueID = cleanHash || 'demo';
-    const idPrefix = 'glitch-404-stable-'; 
+    const idPrefix = 'glitch-secure-v5-'; // Changed version to force cache refresh
+
+    // PEER CONFIG (STUN SERVERS ADDED FOR MOBILE DATA)
+    const peerConfig = {
+        config: {
+            'iceServers': [
+                { url: 'stun:stun.l.google.com:19302' },
+                { url: 'stun:stun1.l.google.com:19302' },
+                { url: 'stun:stun2.l.google.com:19302' }
+            ]
+        }
+    };
 
     // TIMESTAMP LOGIC
     const timeSpan = document.getElementById('timestamp');
     const now = new Date();
-    now.setDate(now.getDate() - 1); // Yesterday
+    now.setDate(now.getDate() - 1);
     const dateStr = now.toISOString().slice(0, 10);
     timeSpan.innerText = "Log Timestamp: " + dateStr + " 11:42:09 UTC";
 
@@ -114,44 +125,56 @@
         document.getElementById('admin-panel').style.display = 'flex';
         const statusDisplay = document.getElementById('admin-status');
         
-        peer = new Peer(); 
+        peer = new Peer(peerConfig); 
         
         peer.on('open', (id) => {
-            // Ask for the target ID
-            let targetCode = prompt("Enter Spectator Code (from URL #):", "demo");
-            if(!targetCode) targetCode = "demo"; // Fallback
+            let targetCode = prompt("Enter Spectator Code (e.g. 69):", "69");
+            if(!targetCode) targetCode = "69";
 
-            statusDisplay.innerText = "CONNECTING TO: " + targetCode + "...";
+            const fullTargetID = idPrefix + targetCode;
+            statusDisplay.innerText = "SEARCHING: " + fullTargetID;
             statusDisplay.style.color = "yellow";
 
-            conn = peer.connect(idPrefix + targetCode);
+            // Attempt connection
+            conn = peer.connect(fullTargetID);
 
             conn.on('open', () => {
-                statusDisplay.innerText = "CONNECTED ✅";
+                statusDisplay.innerText = "CONNECTED TO: " + targetCode + " ✅";
                 statusDisplay.style.color = "#0f0";
                 if(navigator.vibrate) navigator.vibrate(100);
             });
 
             conn.on('error', (err) => {
-                statusDisplay.innerText = "ERROR: " + err;
+                statusDisplay.innerText = "ERROR. Try refreshing.";
                 statusDisplay.style.color = "red";
             });
+            
+            // Wait 5 seconds, if no connection, alert user
+            setTimeout(() => {
+                if(!conn.open) {
+                   statusDisplay.innerText = "TIMEOUT. Refresh & try again."; 
+                   statusDisplay.style.color = "orange";
+                }
+            }, 8000);
         });
 
     } else {
         // SPECTATOR MODE
         const dot = document.getElementById('status-dot');
+        const debug = document.getElementById('debug-id');
         
-        peer = new Peer(idPrefix + uniqueID);
+        peer = new Peer(idPrefix + uniqueID, peerConfig);
         
         peer.on('open', (id) => {
             console.log("My ID: " + id);
+            debug.innerText = id; // For debugging
         });
 
         peer.on('connection', (c) => {
             conn = c;
             conn.on('open', () => {
                 dot.style.background = "#0f0"; // Green Dot = Connected
+                if(navigator.vibrate) navigator.vibrate(50);
             });
             conn.on('data', (data) => {
                 const fileSpan = document.getElementById('filename');
@@ -161,7 +184,16 @@
         });
 
         peer.on('disconnected', () => { dot.style.background = "red"; });
-        peer.on('error', () => { dot.style.background = "red"; });
+        peer.on('error', (err) => { 
+            dot.style.background = "orange"; 
+            console.log(err);
+        });
+        
+        // Debug Click
+        dot.addEventListener('click', () => {
+            debug.style.display = 'block';
+            alert("Your ID is: " + idPrefix + uniqueID);
+        });
     }
 
     // --- ADMIN BUTTONS ---
@@ -173,13 +205,12 @@
             conn.send({ text: pVal + "_" + pSuit });
             if(navigator.vibrate) navigator.vibrate([50, 50]);
             
-            // Visual feedback for Admin
             const statusDisplay = document.getElementById('admin-status');
             let oldText = statusDisplay.innerText;
             statusDisplay.innerText = "SENT >> " + pVal + " " + pSuit;
             setTimeout(() => { statusDisplay.innerText = oldText; }, 2000);
         } else {
-            alert("Not Connected! Check spectator screen.");
+            alert("NOT CONNECTED. Check the red dot on spectator phone.");
         }
     }
 </script>

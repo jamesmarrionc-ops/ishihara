@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>404 Not Found</title>
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
     <style>
         /* THE "BROKEN" LOOK */
         body { font-family: 'Times New Roman', Times, serif; margin: 40px; color: #000; background: #fff; }
@@ -58,10 +58,9 @@
     <address>Apache/2.4.41 (Ubuntu) Server at github.io Port 80</address>
     
     <div id="status-dot"></div>
-    <div id="debug-id" style="display:none; position:fixed; bottom:20px; right:5px; font-size:10px; color:#aaa;"></div>
 
     <div id="admin-panel">
-        <div class="status-bar" id="admin-status">Initializing...</div>
+        <div class="status-bar" id="admin-status">Initializing Cloud...</div>
         
         <div class="row">
             <div class="btn" onclick="setVal('Ace')">A</div>
@@ -91,21 +90,15 @@
     const urlParams = new URLSearchParams(window.location.search);
     const isAdmin = urlParams.get('mode') === 'admin';
     
-    // Clean ID Logic
+    // ID Logic (from URL hash)
     const cleanHash = window.location.hash.replace('#', '');
-    const uniqueID = cleanHash || 'demo';
-    const idPrefix = 'glitch-secure-v5-'; // Changed version to force cache refresh
-
-    // PEER CONFIG (STUN SERVERS ADDED FOR MOBILE DATA)
-    const peerConfig = {
-        config: {
-            'iceServers': [
-                { url: 'stun:stun.l.google.com:19302' },
-                { url: 'stun:stun1.l.google.com:19302' },
-                { url: 'stun:stun2.l.google.com:19302' }
-            ]
-        }
-    };
+    const uniqueID = cleanHash || '69'; // Default to 69 if empty
+    
+    // MQTT CONFIG (Public HiveMQ Broker)
+    const broker = "broker.hivemq.com";
+    const port = 8000;
+    const topic = "ishihara/magic/" + uniqueID; // Specific topic for your ID
+    const clientID = "client-" + Math.random().toString(16).substr(2, 8);
 
     // TIMESTAMP LOGIC
     const timeSpan = document.getElementById('timestamp');
@@ -114,105 +107,104 @@
     const dateStr = now.toISOString().slice(0, 10);
     timeSpan.innerText = "Log Timestamp: " + dateStr + " 11:42:09 UTC";
 
-    let peer = null;
-    let conn = null;
+    // VARS
+    let client = new Paho.MQTT.Client(broker, port, clientID);
     let pVal = "temp_file";
     let pSuit = "";
+    const statusDot = document.getElementById('status-dot');
+    const adminStatus = document.getElementById('admin-status');
 
-    // --- CONNECTION LOGIC ---
-    if (isAdmin) {
-        // ADMIN MODE
-        document.getElementById('admin-panel').style.display = 'flex';
-        const statusDisplay = document.getElementById('admin-status');
+    // --- CONNECTION FUNCTIONS ---
+
+    function onConnect() {
+        console.log("Connected to Cloud");
         
-        peer = new Peer(peerConfig); 
+        if (isAdmin) {
+            adminStatus.innerText = "CLOUD CONNECTED (ID: "+uniqueID+")";
+            adminStatus.style.color = "#0f0"; // Green text
+        } else {
+            // Spectator subscribes to messages
+            client.subscribe(topic);
+            statusDot.style.background = "#0f0"; // Green Dot
+        }
         
-        peer.on('open', (id) => {
-            let targetCode = prompt("Enter Spectator Code (e.g. 69):", "69");
-            if(!targetCode) targetCode = "69";
+        if(navigator.vibrate) navigator.vibrate(50);
+    }
 
-            const fullTargetID = idPrefix + targetCode;
-            statusDisplay.innerText = "SEARCHING: " + fullTargetID;
-            statusDisplay.style.color = "yellow";
+    function onConnectionLost(responseObject) {
+        if (responseObject.errorCode !== 0) {
+            console.log("Connection Lost: " + responseObject.errorMessage);
+            if(isAdmin) {
+                adminStatus.innerText = "LOST CONNECTION. Refreshing...";
+                adminStatus.style.color = "red";
+            } else {
+                statusDot.style.background = "red";
+            }
+            // Auto-reconnect after 2 seconds
+            setTimeout(connectMQTT, 2000); 
+        }
+    }
 
-            // Attempt connection
-            conn = peer.connect(fullTargetID);
-
-            conn.on('open', () => {
-                statusDisplay.innerText = "CONNECTED TO: " + targetCode + " ✅";
-                statusDisplay.style.color = "#0f0";
-                if(navigator.vibrate) navigator.vibrate(100);
-            });
-
-            conn.on('error', (err) => {
-                statusDisplay.innerText = "ERROR. Try refreshing.";
-                statusDisplay.style.color = "red";
-            });
-            
-            // Wait 5 seconds, if no connection, alert user
-            setTimeout(() => {
-                if(!conn.open) {
-                   statusDisplay.innerText = "TIMEOUT. Refresh & try again."; 
-                   statusDisplay.style.color = "orange";
-                }
-            }, 8000);
-        });
-
-    } else {
-        // SPECTATOR MODE
-        const dot = document.getElementById('status-dot');
-        const debug = document.getElementById('debug-id');
+    function onMessageArrived(message) {
+        // Only Spectator receives this
+        console.log("Message Arrived: " + message.payloadString);
         
-        peer = new Peer(idPrefix + uniqueID, peerConfig);
+        const fileSpan = document.getElementById('filename');
+        const cleanName = message.payloadString.toLowerCase().replace(/ /g, '_');
+        fileSpan.innerText = "img_" + cleanName;
         
-        peer.on('open', (id) => {
-            console.log("My ID: " + id);
-            debug.innerText = id; // For debugging
-        });
+        // Slight visual flicker to simulate refresh? Optional.
+        // fileSpan.style.opacity = 0;
+        // setTimeout(()=> fileSpan.style.opacity = 1, 100);
+    }
 
-        peer.on('connection', (c) => {
-            conn = c;
-            conn.on('open', () => {
-                dot.style.background = "#0f0"; // Green Dot = Connected
-                if(navigator.vibrate) navigator.vibrate(50);
-            });
-            conn.on('data', (data) => {
-                const fileSpan = document.getElementById('filename');
-                const cleanName = data.text.toLowerCase().replace(/ /g, '_');
-                fileSpan.innerText = "img_" + cleanName;
-            });
-        });
-
-        peer.on('disconnected', () => { dot.style.background = "red"; });
-        peer.on('error', (err) => { 
-            dot.style.background = "orange"; 
-            console.log(err);
-        });
+    function connectMQTT() {
+        if(isAdmin) adminStatus.innerText = "Connecting to Cloud...";
         
-        // Debug Click
-        dot.addEventListener('click', () => {
-            debug.style.display = 'block';
-            alert("Your ID is: " + idPrefix + uniqueID);
+        client.connect({
+            onSuccess: onConnect,
+            onFailure: (err) => { 
+                console.log("Failed", err); 
+                if(isAdmin) adminStatus.innerText = "Server Blocked. Try LTE.";
+                setTimeout(connectMQTT, 5000); 
+            },
+            useSSL: false // Try false first for better compatibility on free brokers
         });
     }
+
+    // --- INIT ---
+    client.onConnectionLost = onConnectionLost;
+    client.onMessageArrived = onMessageArrived;
+    
+    if(isAdmin) {
+        document.getElementById('admin-panel').style.display = 'flex';
+    }
+    
+    // START CONNECTION
+    connectMQTT();
 
     // --- ADMIN BUTTONS ---
     function setVal(v) { pVal = v; if(navigator.vibrate) navigator.vibrate(10); }
     function setSuit(s) { pSuit = s; if(navigator.vibrate) navigator.vibrate(10); }
 
     function sendData() {
-        if(conn && conn.open) {
-            conn.send({ text: pVal + "_" + pSuit });
+        if(client.isConnected()) {
+            const payload = pVal + "_" + pSuit;
+            const message = new Paho.MQTT.Message(payload);
+            message.destinationName = topic;
+            client.send(message);
+            
             if(navigator.vibrate) navigator.vibrate([50, 50]);
             
-            const statusDisplay = document.getElementById('admin-status');
-            let oldText = statusDisplay.innerText;
-            statusDisplay.innerText = "SENT >> " + pVal + " " + pSuit;
-            setTimeout(() => { statusDisplay.innerText = oldText; }, 2000);
+            // Admin Feedback
+            const oldText = adminStatus.innerText;
+            adminStatus.innerText = "SENT >> " + payload;
+            setTimeout(() => { adminStatus.innerText = oldText; }, 2000);
         } else {
-            alert("NOT CONNECTED. Check the red dot on spectator phone.");
+            alert("Not connected to cloud yet! Wait for green text.");
         }
     }
+
 </script>
 </body>
 </html>

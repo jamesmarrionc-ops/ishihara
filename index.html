@@ -6,41 +6,33 @@
     <title>404 Not Found</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
-        /* THE "BROKEN" LOOK - NO STYLING */
-        body {
-            font-family: 'Times New Roman', Times, serif;
-            margin: 40px;
-            color: #000;
-            background: #fff;
-        }
-        h1 {
-            font-size: 32px;
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-        p {
-            font-size: 16px;
-            margin-bottom: 15px;
-        }
-        hr {
-            border: 0;
-            border-bottom: 1px solid #ccc;
-            margin: 20px 0;
-        }
-        .error-code {
-            font-family: monospace;
-            color: #444;
-            font-size: 14px;
-            background: #f0f0f0;
-            padding: 10px;
-            display: inline-block;
-        }
+        /* THE "BROKEN" LOOK */
+        body { font-family: 'Times New Roman', Times, serif; margin: 40px; color: #000; background: #fff; }
+        h1 { font-size: 32px; font-weight: bold; margin-bottom: 20px; }
+        p { font-size: 16px; margin-bottom: 15px; }
+        hr { border: 0; border-bottom: 1px solid #ccc; margin: 20px 0; }
         
-        /* ADMIN PANEL (Hidden) */
+        .error-code {
+            font-family: monospace; color: #444; font-size: 14px;
+            background: #f0f0f0; padding: 10px; display: inline-block;
+        }
+
+        /* STATUS DOT (Hidden in plain sight) */
+        #status-dot {
+            position: fixed; bottom: 5px; right: 5px;
+            width: 4px; height: 4px; border-radius: 50%;
+            background: red; opacity: 0.3; /* Subtle */
+        }
+
+        /* ADMIN PANEL */
         #admin-panel {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #000; z-index: 9999; flex-direction: column;
             font-family: sans-serif;
+        }
+        .status-bar {
+            background: #333; color: #aaa; padding: 15px; text-align: center;
+            font-size: 14px; font-weight: bold; letter-spacing: 1px;
         }
         .row { display: flex; flex: 1; width: 100%; }
         .btn {
@@ -64,11 +56,12 @@
 
     <hr>
     <address>Apache/2.4.41 (Ubuntu) Server at github.io Port 80</address>
+    
+    <div id="status-dot"></div>
 
     <div id="admin-panel">
-        <div class="row" style="flex:0.3; color:#888; align-items:center; justify-content:center;">
-            SYSTEM LINKED
-        </div>
+        <div class="status-bar" id="admin-status">DISCONNECTED</div>
+        
         <div class="row">
             <div class="btn" onclick="setVal('Ace')">A</div>
             <div class="btn" onclick="setVal('King')">K</div>
@@ -96,62 +89,99 @@
     // --- SETUP ---
     const urlParams = new URLSearchParams(window.location.search);
     const isAdmin = urlParams.get('mode') === 'admin';
-    const hashID = window.location.hash.replace('#', '') || 'error-log';
-    const idPrefix = 'glitch-404-v2-'; 
+    
+    // ID LOGIC: If no hash, default to 'demo'. 
+    // Example: site.com/#123 -> ID is '123'
+    const cleanHash = window.location.hash.replace('#', '');
+    const uniqueID = cleanHash || 'demo';
+    const idPrefix = 'glitch-404-stable-'; 
 
-    // GENERATE FAKE TIMESTAMP (YESTERDAY)
+    // TIMESTAMP LOGIC
     const timeSpan = document.getElementById('timestamp');
     const now = new Date();
     now.setDate(now.getDate() - 1); // Yesterday
-    // Format: "2024-10-12 23:42:05 UTC"
     const dateStr = now.toISOString().slice(0, 10);
     timeSpan.innerText = "Log Timestamp: " + dateStr + " 11:42:09 UTC";
 
     let peer = null;
     let conn = null;
-    
-    // Prediction Vars
     let pVal = "temp_file";
     let pSuit = "";
 
-    // --- CONNECTION ---
+    // --- CONNECTION LOGIC ---
     if (isAdmin) {
+        // ADMIN MODE
         document.getElementById('admin-panel').style.display = 'flex';
+        const statusDisplay = document.getElementById('admin-status');
+        
         peer = new Peer(); 
-        peer.on('open', () => {
-            let target = prompt("Enter ID (URL #):", "123");
-            if(target) conn = peer.connect(idPrefix + target);
+        
+        peer.on('open', (id) => {
+            // Ask for the target ID
+            let targetCode = prompt("Enter Spectator Code (from URL #):", "demo");
+            if(!targetCode) targetCode = "demo"; // Fallback
+
+            statusDisplay.innerText = "CONNECTING TO: " + targetCode + "...";
+            statusDisplay.style.color = "yellow";
+
+            conn = peer.connect(idPrefix + targetCode);
+
+            conn.on('open', () => {
+                statusDisplay.innerText = "CONNECTED ✅";
+                statusDisplay.style.color = "#0f0";
+                if(navigator.vibrate) navigator.vibrate(100);
+            });
+
+            conn.on('error', (err) => {
+                statusDisplay.innerText = "ERROR: " + err;
+                statusDisplay.style.color = "red";
+            });
         });
+
     } else {
-        peer = new Peer(idPrefix + hashID);
+        // SPECTATOR MODE
+        const dot = document.getElementById('status-dot');
+        
+        peer = new Peer(idPrefix + uniqueID);
+        
+        peer.on('open', (id) => {
+            console.log("My ID: " + id);
+        });
+
         peer.on('connection', (c) => {
             conn = c;
+            conn.on('open', () => {
+                dot.style.background = "#0f0"; // Green Dot = Connected
+            });
             conn.on('data', (data) => {
-                // Update the filename in the error log
                 const fileSpan = document.getElementById('filename');
                 const cleanName = data.text.toLowerCase().replace(/ /g, '_');
                 fileSpan.innerText = "img_" + cleanName;
-                
-                // Optional: Flash slightly to show update happened? No, keep it static.
             });
         });
+
+        peer.on('disconnected', () => { dot.style.background = "red"; });
+        peer.on('error', () => { dot.style.background = "red"; });
     }
 
-    // --- ADMIN CONTROLS ---
-    function setVal(v) { pVal = v; vibe(15); }
-    function setSuit(s) { pSuit = s; vibe(15); }
+    // --- ADMIN BUTTONS ---
+    function setVal(v) { pVal = v; if(navigator.vibrate) navigator.vibrate(10); }
+    function setSuit(s) { pSuit = s; if(navigator.vibrate) navigator.vibrate(10); }
 
     function sendData() {
-        if(conn) {
+        if(conn && conn.open) {
             conn.send({ text: pVal + "_" + pSuit });
-            vibe([50, 50]); // Success
+            if(navigator.vibrate) navigator.vibrate([50, 50]);
+            
+            // Visual feedback for Admin
+            const statusDisplay = document.getElementById('admin-status');
+            let oldText = statusDisplay.innerText;
+            statusDisplay.innerText = "SENT >> " + pVal + " " + pSuit;
+            setTimeout(() => { statusDisplay.innerText = oldText; }, 2000);
+        } else {
+            alert("Not Connected! Check spectator screen.");
         }
     }
-
-    function vibe(pattern) {
-        if(navigator.vibrate) navigator.vibrate(pattern);
-    }
-
 </script>
 </body>
 </html>

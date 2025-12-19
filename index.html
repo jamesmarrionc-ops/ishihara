@@ -4,122 +4,157 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Visual Signal Test</title>
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: Courier, monospace; }
         canvas { display: block; width: 100vw; height: 100vh; }
         
+        /* TEXT OVERLAY */
+        #status-text {
+            position: absolute; bottom: 30px; width: 100%; text-align: center;
+            color: #444; font-size: 14px; pointer-events: none; letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
         /* ADMIN PANEL STYLES */
         #admin-panel {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #111; z-index: 999; flex-direction: column;
         }
         .btn {
-            flex: 1; border: 1px solid #333; color: #fff; font-size: 3rem; font-weight: bold;
+            flex: 1; border-bottom: 1px solid #333; color: #fff; font-size: 2rem; font-weight: bold;
             display: flex; align-items: center; justify-content: center;
-            background: #000; text-transform: uppercase;
+            background: #000; text-transform: uppercase; cursor: pointer;
         }
-        .btn:active { background: #0f0; color: #000; } /* Flash green on press */
+        .btn:active { background: #fff; color: #000; }
+        .stop-btn { color: #f55; height: 80px; flex: none; }
         
-        #status-text {
-            position: absolute; bottom: 20px; width: 100%; text-align: center;
-            color: #666; font-size: 12px; pointer-events: none; letter-spacing: 2px;
+        #connection-status {
+            color: #0f0; font-size: 12px; position: absolute; top: 10px; right: 10px; display: none;
         }
     </style>
 </head>
 <body>
 
+    <div id="connection-status">● LINKED</div>
     <canvas id="canvas"></canvas>
     <div id="status-text">SIGNAL NOISE: 100%</div>
 
     <div id="admin-panel">
-        <div class="btn" style="border-bottom: 2px solid #333" onclick="trigger('7')">FORCE 7</div>
-        <div class="btn" style="border-bottom: 2px solid #333" onclick="trigger('5')">FORCE 5</div>
-        <div class="btn" style="color: #f55" onclick="trigger('stop')">STOP</div>
+        <div style="padding:10px; color:#666; font-size:12px; text-align:center;">REMOTE CONTROLLER</div>
+        <div class="btn" onclick="sendShape('7')">FORCE 7</div>
+        <div class="btn" onclick="sendShape('5')">FORCE 5</div>
+        <div class="btn" onclick="sendShape('3')">FORCE 3</div> <div class="btn stop-btn" onclick="sendShape('stop')">STOP / RESET</div>
     </div>
 
 <script>
-    // --- SETUP & CONNECTION ---
+    // --- 1. ROBUST CLOUD CONNECTION (MQTT) ---
     const urlParams = new URLSearchParams(window.location.search);
     const isAdmin = urlParams.get('mode') === 'admin';
-    const hashID = window.location.hash.replace('#', '') || 'demo';
-    const idPrefix = 'phantom-v2-User-'; 
+    const uniqueID = window.location.hash.replace('#', '') || 'demo';
+    
+    // Broker Settings (Free Public Cloud)
+    const broker = "broker.hivemq.com";
+    const port = 8000;
+    const topic = "magic/signal/" + uniqueID;
+    const clientID = "user-" + Math.random().toString(16).substr(2, 8);
+    let client = new Paho.MQTT.Client(broker, port, clientID);
 
-    let peer = null;
-    let conn = null;
+    let currentShape = null;
 
-    if (isAdmin) {
-        document.getElementById('admin-panel').style.display = 'flex';
-        peer = new Peer(); 
-        peer.on('open', () => {
-            let targetCode = prompt("Enter Code (e.g. 123):", "123");
-            if(targetCode) conn = peer.connect(idPrefix + targetCode);
-        });
-    } else {
-        peer = new Peer(idPrefix + hashID);
-        peer.on('open', (id) => { document.getElementById('status-text').innerText = "CALIBRATION READY"; });
-        peer.on('connection', (c) => { 
-            conn = c;
-            conn.on('data', (data) => { if (data.action === 'shape') currentShape = data.value; });
-        });
+    function onConnect() {
+        console.log("Connected to Cloud");
+        if(isAdmin) {
+            document.getElementById('admin-panel').style.display = 'flex';
+        } else {
+            client.subscribe(topic);
+            document.getElementById('connection-status').style.display = 'block';
+        }
     }
 
-    function trigger(shape) {
-        if (conn) conn.send({ action: 'shape', value: shape === 'stop' ? null : shape });
-        currentShape = shape === 'stop' ? null : shape;
+    function onMessageArrived(msg) {
+        const payload = msg.payloadString;
+        console.log("Signal Received:", payload);
+        
+        if(payload === 'stop') {
+            currentShape = null;
+            document.getElementById('status-text').innerText = "SIGNAL NOISE: 100%";
+            document.getElementById('status-text').style.color = "#444";
+        } else {
+            currentShape = payload;
+            document.getElementById('status-text').innerText = "SIGNAL LOCKED: " + payload;
+            document.getElementById('status-text').style.color = "#fff";
+            
+            // Haptic Feedback for Spectator
+            if(navigator.vibrate) navigator.vibrate(200);
+        }
     }
 
-    // --- VISUAL ENGINE (HIGH CONTRAST) ---
+    client.connect({ onSuccess: onConnect, useSSL: false });
+
+    // Admin Function
+    function sendShape(val) {
+        const message = new Paho.MQTT.Message(val);
+        message.destinationName = topic;
+        client.send(message);
+    }
+
+    // --- 2. YOUR VISUAL ENGINE (Restored) ---
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     let width, height;
     let particles = [];
-    let currentShape = null;
 
     function resize() {
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
-        // INCREASED DENSITY: 6000 particles for better visibility
         particles = [];
-        for(let i=0; i<6000; i++) {
+        // 5000 Particles for a dense look
+        for(let i=0; i<5000; i++) {
             particles.push({
                 x: Math.random() * width,
                 y: Math.random() * height,
-                vx: 0, vy: 0
+                baseX: Math.random() * width, // Remember original position
+                baseY: Math.random() * height
             });
         }
     }
     window.addEventListener('resize', resize);
 
-    // THICKER SHAPE LOGIC
+    // Shape Geometry Logic
     function inShape(x, y, shape) {
-        let nx = x / width; // 0.0 to 1.0
-        let ny = y / height; // 0.0 to 1.0
+        let nx = x / width; // Normalize 0-1
+        let ny = y / height;
         
-        // Helper for rectangles (x1, x2, y1, y2)
         const rect = (x1, x2, y1, y2) => nx > x1 && nx < x2 && ny > y1 && ny < y2;
 
         if(shape === '7') {
-            // Top Bar (Thick)
-            if (rect(0.2, 0.8, 0.15, 0.3)) return true;
-            // Diagonal Stroke (Thick)
-            // Logic: Is x close to the diagonal line?
-            let idealX = 0.8 - ((ny - 0.3) * 0.8); // Slope math
-            if (nx > idealX - 0.08 && nx < idealX + 0.08 && ny > 0.3 && ny < 0.85) return true;
+            // Top Bar
+            if (rect(0.25, 0.75, 0.2, 0.3)) return true;
+            // Diagonal (Math to create a thick line)
+            let idealX = 0.75 - ((ny - 0.3) * 0.8);
+            if (nx > idealX - 0.06 && nx < idealX + 0.06 && ny > 0.3 && ny < 0.8) return true;
         }
 
         if(shape === '5') {
-            if (rect(0.3, 0.75, 0.15, 0.25)) return true; // Top
-            if (rect(0.3, 0.45, 0.25, 0.45)) return true; // Left down
-            if (rect(0.3, 0.75, 0.45, 0.55)) return true; // Middle
-            if (rect(0.6, 0.75, 0.55, 0.75)) return true; // Right down
-            if (rect(0.3, 0.75, 0.75, 0.85)) return true; // Bottom
+            if (rect(0.3, 0.7, 0.2, 0.28)) return true; // Top
+            if (rect(0.3, 0.4, 0.2, 0.5)) return true;  // Left Down
+            if (rect(0.3, 0.7, 0.42, 0.52)) return true; // Middle
+            if (rect(0.6, 0.7, 0.5, 0.75)) return true;  // Right Down
+            if (rect(0.3, 0.7, 0.72, 0.8)) return true;  // Bottom
         }
+        
+        if(shape === '3') {
+            if (rect(0.3, 0.7, 0.2, 0.28)) return true; // Top
+            if (rect(0.3, 0.7, 0.45, 0.55)) return true; // Middle
+            if (rect(0.3, 0.7, 0.72, 0.8)) return true; // Bottom
+            if (rect(0.6, 0.7, 0.2, 0.8)) return true; // Right Side (Simpler 3)
+        }
+
         return false;
     }
 
     function animate() {
-        // Clear screen
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, width, height);
 
@@ -127,23 +162,23 @@
             let isInside = currentShape ? inShape(p.x, p.y, currentShape) : false;
 
             if (isInside) {
-                // INSIDE: BRIGHT WHITE, FLOWING RIGHT
-                ctx.fillStyle = '#FFFFFF'; 
-                p.x += 5; // Fast flow
-                p.y += (Math.random() - 0.5); // Slight jitter
+                // INSIDE SHAPE: Bright, slight jitter
+                ctx.fillStyle = '#fff';
+                p.x += (Math.random() - 0.5) * 2;
+                p.y += (Math.random() - 0.5) * 2;
+                // Pull towards shape center slightly to tighten it
             } else {
-                // OUTSIDE: DARK GREY, RANDOM JITTER
-                ctx.fillStyle = currentShape ? '#222' : '#555'; // Darker when shape is active to increase contrast
-                p.x += (Math.random() - 0.5) * 4;
-                p.y += (Math.random() - 0.5) * 4;
+                // OUTSIDE: Dark grey noise
+                ctx.fillStyle = currentShape ? '#222' : '#555'; 
+                p.x += (Math.random() - 0.5) * 10; // High noise
+                p.y += (Math.random() - 0.5) * 10;
             }
 
-            // Wrap edges
-            if(p.x > width) p.x = 0;
-            if(p.x < 0) p.x = width;
+            // Boundary wrap
+            if(p.x > width) p.x = 0; if(p.x < 0) p.x = width;
+            if(p.y > height) p.y = 0; if(p.y < 0) p.y = height;
 
-            // Draw Dot
-            ctx.fillRect(p.x, p.y, 2.5, 2.5); // Bigger dots
+            ctx.fillRect(p.x, p.y, 2, 2);
         });
 
         requestAnimationFrame(animate);

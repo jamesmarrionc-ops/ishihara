@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Display Refresh Calibration</title>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        
+        /* Admin Interface (Hidden by default) */
+        #admin-panel {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 999; flex-direction: column;
+        }
+        .btn {
+            flex: 1; border: 1px solid #333; color: #555; font-size: 2rem; 
+            display: flex; align-items: center; justify-content: center;
+            background: #111; user-select: none;
+        }
+        .btn:active { background: #fff; color: #000; }
+        
+        #status-text {
+            position: absolute; bottom: 10px; width: 100%; text-align: center;
+            color: #333; font-size: 10px; pointer-events: none; letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="canvas"></canvas>
+    <div id="status-text">CALIBRATING SENSOR...</div>
+
+    <div id="admin-panel">
+        <div class="btn" style="border-bottom: 2px solid #555" onclick="trigger('7')">FORCE 7</div>
+        <div class="btn" style="border-bottom: 2px solid #555" onclick="trigger('5')">FORCE 5</div>
+        <div class="btn" onclick="trigger('stop')">CLEAR / STOP</div>
+    </div>
+
+<script>
+    // --- 1. CONFIGURATION ---
+    // If URL has ?mode=admin, show controls. 
+    // If URL has #123, become spectator with ID 123.
+    const urlParams = new URLSearchParams(window.location.search);
+    const isAdmin = urlParams.get('mode') === 'admin';
+    const hashID = window.location.hash.replace('#', '') || 'demo';
+    
+    // Prefix to ensure unique IDs on PeerJS public server
+    const idPrefix = 'phantom-trick-User101-'; 
+
+    let peer = null;
+    let conn = null;
+
+    // --- 2. ADMIN LOGIC ---
+    if (isAdmin) {
+        document.getElementById('admin-panel').style.display = 'flex';
+        // Admin doesn't need a specific ID, just needs to connect TO someone
+        peer = new Peer(); 
+        
+        peer.on('open', () => {
+            // Ask performer which "Room Code" to join
+            let targetCode = prompt("Enter Spectator Code (e.g. 123):", "123");
+            if(targetCode) {
+                conn = peer.connect(idPrefix + targetCode);
+                conn.on('open', () => {
+                    alert("CONNECTED. Phone in pocket.");
+                });
+            }
+        });
+    } 
+    
+    // --- 3. SPECTATOR LOGIC ---
+    else {
+        // Spectator ID is fixed based on the hash (URL#123)
+        peer = new Peer(idPrefix + hashID);
+        
+        peer.on('open', (id) => {
+            console.log("My ID: " + id);
+            document.getElementById('status-text').innerText = "SENSOR ACTIVE. DO NOT MOVE.";
+        });
+
+        peer.on('connection', (connection) => {
+            conn = connection;
+            conn.on('data', (data) => {
+                // Receive command from Admin
+                if (data.action === 'shape') {
+                    currentShape = data.value;
+                }
+            });
+        });
+    }
+
+    // --- 4. ADMIN CONTROLS ---
+    function trigger(shape) {
+        if (conn) {
+            conn.send({ action: 'shape', value: shape === 'stop' ? null : shape });
+            // Vibration feedback to know you pressed it
+            if(navigator.vibrate) navigator.vibrate(50);
+        }
+        currentShape = shape === 'stop' ? null : shape; // Update local view too
+    }
+
+    // --- 5. VISUAL ENGINE (Structure From Motion) ---
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    let particles = [];
+    let currentShape = null;
+
+    function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        initParticles();
+    }
+    window.addEventListener('resize', resize);
+
+    function initParticles() {
+        particles = [];
+        // Create 3000 dots
+        for(let i=0; i<3000; i++) {
+            particles.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                c: Math.random() > 0.5 ? '#222' : '#444' // Dark grey noise
+            });
+        }
+    }
+
+    function inShape(x, y, shape) {
+        // Normalize x,y to 0-1 range
+        let nx = x / width;
+        let ny = y / height;
+        
+        if(shape === '7') {
+            // Top bar
+            if(ny > 0.2 && ny < 0.3 && nx > 0.3 && nx < 0.7) return true;
+            // Diagonal
+            if(nx > (0.9 - ny) - 0.05 && nx < (0.9 - ny) + 0.05 && ny > 0.3 && ny < 0.8) return true;
+        }
+        if(shape === '5') {
+            if(ny > 0.2 && ny < 0.3 && nx > 0.3 && nx < 0.7) return true; // Top
+            if(nx > 0.3 && nx < 0.4 && ny > 0.2 && ny < 0.5) return true; // Left down
+            if(ny > 0.45 && ny < 0.55 && nx > 0.3 && nx < 0.7) return true; // Mid
+            if(nx > 0.6 && nx < 0.7 && ny > 0.5 && ny < 0.75) return true; // Right down
+            if(ny > 0.7 && ny < 0.8 && nx > 0.3 && nx < 0.7) return true; // Bot
+        }
+        return false;
+    }
+
+    function animate() {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, width, height);
+
+        particles.forEach(p => {
+            let dx = 0;
+            
+            // If shape is active, check if dot is inside
+            if (currentShape && inShape(p.x, p.y, currentShape)) {
+                dx = 3; // Move RIGHT
+                p.c = '#AAA'; // Slightly lighter
+            } else if (currentShape) {
+                dx = -3; // Move LEFT
+                p.c = '#222'; // Darker
+            } else {
+                // Chaos mode
+                dx = (Math.random() - 0.5) * 2;
+                if(Math.random() > 0.95) p.c = Math.random() > 0.5 ? '#222' : '#444';
+            }
+
+            p.x += dx;
+
+            // Wrap around screen
+            if(p.x > width) p.x = 0;
+            if(p.x < 0) p.x = width;
+
+            ctx.fillStyle = p.c;
+            ctx.fillRect(p.x, p.y, 2, 2);
+        });
+
+        requestAnimationFrame(animate);
+    }
+
+    resize();
+    animate();
+
+</script>
+</body>
+</html>

@@ -3,105 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Display Refresh Calibration</title>
+    <title>Visual Signal Test</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
         canvas { display: block; width: 100vw; height: 100vh; }
         
-        /* Admin Interface (Hidden by default) */
+        /* ADMIN PANEL STYLES */
         #admin-panel {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 999; flex-direction: column;
+            background: #111; z-index: 999; flex-direction: column;
         }
         .btn {
-            flex: 1; border: 1px solid #333; color: #555; font-size: 2rem; 
+            flex: 1; border: 1px solid #333; color: #fff; font-size: 3rem; font-weight: bold;
             display: flex; align-items: center; justify-content: center;
-            background: #111; user-select: none;
+            background: #000; text-transform: uppercase;
         }
-        .btn:active { background: #fff; color: #000; }
+        .btn:active { background: #0f0; color: #000; } /* Flash green on press */
         
         #status-text {
-            position: absolute; bottom: 10px; width: 100%; text-align: center;
-            color: #333; font-size: 10px; pointer-events: none; letter-spacing: 2px;
+            position: absolute; bottom: 20px; width: 100%; text-align: center;
+            color: #666; font-size: 12px; pointer-events: none; letter-spacing: 2px;
         }
     </style>
 </head>
 <body>
 
     <canvas id="canvas"></canvas>
-    <div id="status-text">CALIBRATING SENSOR...</div>
+    <div id="status-text">SIGNAL NOISE: 100%</div>
 
     <div id="admin-panel">
-        <div class="btn" style="border-bottom: 2px solid #555" onclick="trigger('7')">FORCE 7</div>
-        <div class="btn" style="border-bottom: 2px solid #555" onclick="trigger('5')">FORCE 5</div>
-        <div class="btn" onclick="trigger('stop')">CLEAR / STOP</div>
+        <div class="btn" style="border-bottom: 2px solid #333" onclick="trigger('7')">FORCE 7</div>
+        <div class="btn" style="border-bottom: 2px solid #333" onclick="trigger('5')">FORCE 5</div>
+        <div class="btn" style="color: #f55" onclick="trigger('stop')">STOP</div>
     </div>
 
 <script>
-    // --- 1. CONFIGURATION ---
-    // If URL has ?mode=admin, show controls. 
-    // If URL has #123, become spectator with ID 123.
+    // --- SETUP & CONNECTION ---
     const urlParams = new URLSearchParams(window.location.search);
     const isAdmin = urlParams.get('mode') === 'admin';
     const hashID = window.location.hash.replace('#', '') || 'demo';
-    
-    // Prefix to ensure unique IDs on PeerJS public server
-    const idPrefix = 'phantom-trick-User101-'; 
+    const idPrefix = 'phantom-v2-User-'; 
 
     let peer = null;
     let conn = null;
 
-    // --- 2. ADMIN LOGIC ---
     if (isAdmin) {
         document.getElementById('admin-panel').style.display = 'flex';
-        // Admin doesn't need a specific ID, just needs to connect TO someone
         peer = new Peer(); 
-        
         peer.on('open', () => {
-            // Ask performer which "Room Code" to join
-            let targetCode = prompt("Enter Spectator Code (e.g. 123):", "123");
-            if(targetCode) {
-                conn = peer.connect(idPrefix + targetCode);
-                conn.on('open', () => {
-                    alert("CONNECTED. Phone in pocket.");
-                });
-            }
+            let targetCode = prompt("Enter Code (e.g. 123):", "123");
+            if(targetCode) conn = peer.connect(idPrefix + targetCode);
         });
-    } 
-    
-    // --- 3. SPECTATOR LOGIC ---
-    else {
-        // Spectator ID is fixed based on the hash (URL#123)
+    } else {
         peer = new Peer(idPrefix + hashID);
-        
-        peer.on('open', (id) => {
-            console.log("My ID: " + id);
-            document.getElementById('status-text').innerText = "SENSOR ACTIVE. DO NOT MOVE.";
-        });
-
-        peer.on('connection', (connection) => {
-            conn = connection;
-            conn.on('data', (data) => {
-                // Receive command from Admin
-                if (data.action === 'shape') {
-                    currentShape = data.value;
-                }
-            });
+        peer.on('open', (id) => { document.getElementById('status-text').innerText = "CALIBRATION READY"; });
+        peer.on('connection', (c) => { 
+            conn = c;
+            conn.on('data', (data) => { if (data.action === 'shape') currentShape = data.value; });
         });
     }
 
-    // --- 4. ADMIN CONTROLS ---
     function trigger(shape) {
-        if (conn) {
-            conn.send({ action: 'shape', value: shape === 'stop' ? null : shape });
-            // Vibration feedback to know you pressed it
-            if(navigator.vibrate) navigator.vibrate(50);
-        }
-        currentShape = shape === 'stop' ? null : shape; // Update local view too
+        if (conn) conn.send({ action: 'shape', value: shape === 'stop' ? null : shape });
+        currentShape = shape === 'stop' ? null : shape;
     }
 
-    // --- 5. VISUAL ENGINE (Structure From Motion) ---
+    // --- VISUAL ENGINE (HIGH CONTRAST) ---
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     let width, height;
@@ -111,71 +79,71 @@
     function resize() {
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
-        initParticles();
-    }
-    window.addEventListener('resize', resize);
-
-    function initParticles() {
+        // INCREASED DENSITY: 6000 particles for better visibility
         particles = [];
-        // Create 3000 dots
-        for(let i=0; i<3000; i++) {
+        for(let i=0; i<6000; i++) {
             particles.push({
                 x: Math.random() * width,
                 y: Math.random() * height,
-                c: Math.random() > 0.5 ? '#222' : '#444' // Dark grey noise
+                vx: 0, vy: 0
             });
         }
     }
+    window.addEventListener('resize', resize);
 
+    // THICKER SHAPE LOGIC
     function inShape(x, y, shape) {
-        // Normalize x,y to 0-1 range
-        let nx = x / width;
-        let ny = y / height;
+        let nx = x / width; // 0.0 to 1.0
+        let ny = y / height; // 0.0 to 1.0
         
+        // Helper for rectangles (x1, x2, y1, y2)
+        const rect = (x1, x2, y1, y2) => nx > x1 && nx < x2 && ny > y1 && ny < y2;
+
         if(shape === '7') {
-            // Top bar
-            if(ny > 0.2 && ny < 0.3 && nx > 0.3 && nx < 0.7) return true;
-            // Diagonal
-            if(nx > (0.9 - ny) - 0.05 && nx < (0.9 - ny) + 0.05 && ny > 0.3 && ny < 0.8) return true;
+            // Top Bar (Thick)
+            if (rect(0.2, 0.8, 0.15, 0.3)) return true;
+            // Diagonal Stroke (Thick)
+            // Logic: Is x close to the diagonal line?
+            let idealX = 0.8 - ((ny - 0.3) * 0.8); // Slope math
+            if (nx > idealX - 0.08 && nx < idealX + 0.08 && ny > 0.3 && ny < 0.85) return true;
         }
+
         if(shape === '5') {
-            if(ny > 0.2 && ny < 0.3 && nx > 0.3 && nx < 0.7) return true; // Top
-            if(nx > 0.3 && nx < 0.4 && ny > 0.2 && ny < 0.5) return true; // Left down
-            if(ny > 0.45 && ny < 0.55 && nx > 0.3 && nx < 0.7) return true; // Mid
-            if(nx > 0.6 && nx < 0.7 && ny > 0.5 && ny < 0.75) return true; // Right down
-            if(ny > 0.7 && ny < 0.8 && nx > 0.3 && nx < 0.7) return true; // Bot
+            if (rect(0.3, 0.75, 0.15, 0.25)) return true; // Top
+            if (rect(0.3, 0.45, 0.25, 0.45)) return true; // Left down
+            if (rect(0.3, 0.75, 0.45, 0.55)) return true; // Middle
+            if (rect(0.6, 0.75, 0.55, 0.75)) return true; // Right down
+            if (rect(0.3, 0.75, 0.75, 0.85)) return true; // Bottom
         }
         return false;
     }
 
     function animate() {
+        // Clear screen
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, width, height);
 
         particles.forEach(p => {
-            let dx = 0;
-            
-            // If shape is active, check if dot is inside
-            if (currentShape && inShape(p.x, p.y, currentShape)) {
-                dx = 3; // Move RIGHT
-                p.c = '#AAA'; // Slightly lighter
-            } else if (currentShape) {
-                dx = -3; // Move LEFT
-                p.c = '#222'; // Darker
+            let isInside = currentShape ? inShape(p.x, p.y, currentShape) : false;
+
+            if (isInside) {
+                // INSIDE: BRIGHT WHITE, FLOWING RIGHT
+                ctx.fillStyle = '#FFFFFF'; 
+                p.x += 5; // Fast flow
+                p.y += (Math.random() - 0.5); // Slight jitter
             } else {
-                // Chaos mode
-                dx = (Math.random() - 0.5) * 2;
-                if(Math.random() > 0.95) p.c = Math.random() > 0.5 ? '#222' : '#444';
+                // OUTSIDE: DARK GREY, RANDOM JITTER
+                ctx.fillStyle = currentShape ? '#222' : '#555'; // Darker when shape is active to increase contrast
+                p.x += (Math.random() - 0.5) * 4;
+                p.y += (Math.random() - 0.5) * 4;
             }
 
-            p.x += dx;
-
-            // Wrap around screen
+            // Wrap edges
             if(p.x > width) p.x = 0;
             if(p.x < 0) p.x = width;
 
-            ctx.fillStyle = p.c;
-            ctx.fillRect(p.x, p.y, 2, 2);
+            // Draw Dot
+            ctx.fillRect(p.x, p.y, 2.5, 2.5); // Bigger dots
         });
 
         requestAnimationFrame(animate);

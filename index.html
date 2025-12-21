@@ -2,162 +2,281 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Cipher Pro v6</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cipher Pro v8</title>
     <style>
+        :root {
+            --bg-color: #0d0d0d;
+            --card-color: #1c1c1e;
+            --accent-color: #0a84ff;
+            --text-primary: #ffffff;
+            --text-secondary: #8e8e93;
+            --border-radius: 20px;
+            --btn-radius: 14px;
+            --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+        }
+
         body {
             margin: 0;
-            background-color: #000;
-            color: #fff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-stack);
             height: 100vh;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        /* --- TOP BAR --- */
-        #top-bar {
-            height: 40px;
+        /* --- HEADER --- */
+        header {
+            height: 60px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 15px;
-            font-size: 12px;
-            color: #444;
-            border-bottom: 1px solid #111;
+            padding: 0 24px;
+            z-index: 10;
         }
-        #reset-btn { color: #666; padding: 10px; font-size: 20px; }
 
-        /* --- MAIN DISPLAY --- */
-        #main-display {
+        .status-badge {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            background: rgba(255,255,255,0.05);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+
+        .reset-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            color: #fff;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .reset-icon:active {
+            transform: scale(0.9);
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* --- MAIN CONTENT (BENTO LAYOUT) --- */
+        main {
             flex: 1;
+            padding: 10px 16px;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            padding: 10px;
+            gap: 12px;
             overflow: hidden;
         }
 
-        /* The Big Reveal Word */
-        #result-word {
-            font-size: 2.5rem;
-            font-weight: 800;
-            margin-top: 5px;
-            margin-bottom: 10px;
-            color: #eee;
-            text-transform: uppercase;
-            text-align: center;
-            min-height: 50px;
+        /* 1. RESULT CARD */
+        #result-card {
+            background-color: var(--card-color);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 140px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            position: relative;
             flex-shrink: 0;
         }
 
-        /* SCROLLABLE CANDIDATES GRID */
-        #candidates-wrapper {
-            width: 100%;
+        #result-word {
+            font-size: 3.5rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            line-height: 1;
+            text-align: center;
+            background: linear-gradient(180deg, #fff, #bbb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 10px 0;
+            white-space: nowrap;
+        }
+
+        #helper-text {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            opacity: 0.8;
+        }
+
+        /* 2. CANDIDATES GRID (Scrollable) */
+        #grid-area {
             flex: 1;
             overflow-y: auto;
-            padding-bottom: 10px;
+            border-radius: var(--border-radius);
+            /* Hide Scrollbar */
+            scrollbar-width: none;
+            -ms-overflow-style: none;
         }
+        #grid-area::-webkit-scrollbar { display: none; }
+
         #candidates-container {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            width: 100%;
+            gap: 10px;
+            padding-bottom: 80px; /* Space for floating bar */
         }
 
         .candidate-btn {
-            background: #111;
-            color: #666;
-            border: 1px solid #222;
-            padding: 12px 5px;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            font-weight: 600;
+            background: rgba(255,255,255,0.06);
+            padding: 18px;
+            border-radius: var(--btn-radius);
             text-align: center;
-            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #ccc;
+            transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border: 1px solid transparent;
         }
-        .candidate-btn:active { background: #fff; color: #000; }
+        .candidate-btn:active {
+            transform: scale(0.96);
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+        }
 
-        /* --- FILTER BAR (NEW) --- */
-        #filter-bar {
+        /* --- FILTER BAR (Glassmorphism) --- */
+        #filter-bar-container {
+            position: fixed;
+            bottom: 34vh; /* sits just above controls */
+            left: 16px; 
+            right: 16px;
             height: 50px;
+            display: none; /* JS toggles flex */
+            align-items: center;
+            z-index: 50;
+        }
+
+        #filter-bar {
             display: flex;
             align-items: center;
             overflow-x: auto;
-            background: #050505;
-            border-top: 1px solid #222;
-            border-bottom: 1px solid #222;
-            padding: 0 5px;
-            flex-shrink: 0;
-            /* Hide scrollbars */
-            -ms-overflow-style: none; scrollbar-width: none;
+            gap: 6px;
+            padding: 0 10px;
+            width: 100%;
+            height: 100%;
+            background: rgba(28, 28, 30, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.08);
+            scrollbar-width: none;
         }
         #filter-bar::-webkit-scrollbar { display: none; }
 
         .letter-key {
-            min-width: 35px;
-            height: 35px;
+            min-width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.08);
+            color: #fff;
             display: flex;
-            justify-content: center;
             align-items: center;
-            margin: 0 3px;
-            border-radius: 5px;
-            background: #1a1a1a;
-            color: #888;
-            font-weight: bold;
+            justify-content: center;
+            font-weight: 700;
             font-size: 14px;
-            border: 1px solid #333;
+            flex-shrink: 0;
+            transition: all 0.2s;
         }
         .letter-key.active {
-            background: #007AFF; /* Blue highlight */
-            color: white;
-            border-color: #007AFF;
+            background: var(--accent-color);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(10, 132, 255, 0.4);
         }
 
-        /* --- INPUT ZONES --- */
+        /* --- INPUT CONTROLS (Bottom Bento) --- */
         .controls {
-            height: 30vh; 
-            display: flex;
-            width: 100%;
+            height: 32vh;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            padding: 0 16px 20px 16px;
             flex-shrink: 0;
-            background: #000;
         }
-        .zone { flex: 1; }
 
-        /* Helper Text */
-        #helper-text {
-            font-size: 0.8rem;
-            color: #444;
-            text-align: center;
-            padding: 5px;
-            position: absolute;
-            bottom: 31vh;
-            width: 100%;
-            pointer-events: none;
+        .zone {
+            background: var(--card-color);
+            border-radius: var(--border-radius);
+            position: relative;
+            overflow: hidden;
+            transition: background 0.2s;
         }
+        .zone:active {
+            background: #2c2c2e;
+        }
+        
+        /* Subtle labels for the zones */
+        .zone::after {
+            content: '';
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: #444;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        #btn-left::after { content: 'STR'; }
+        #btn-mid::after { content: 'MIX'; }
+        #btn-right::after { content: 'CRV'; }
+
+        /* Error Toast */
+        #error-toast {
+            position: absolute;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ff453a;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: none;
+            box-shadow: 0 4px 12px rgba(255, 69, 58, 0.3);
+            z-index: 100;
+        }
+
     </style>
 </head>
 <body>
 
-    <div id="top-bar">
-        <div id="status-text">Ready</div>
-        <div id="reset-btn" onclick="resetApp()">✕</div>
-    </div>
+    <header>
+        <div class="status-badge" id="status-text">System Ready</div>
+        <div class="reset-icon" onclick="resetApp()">✕</div>
+    </header>
 
-    <div id="main-display">
-        <div id="result-word"></div>
-        <div id="candidates-wrapper">
+    <div id="error-toast">Connection Error</div>
+
+    <main>
+        <div id="result-card">
+            <div id="result-word"></div>
+            <div id="helper-text">Tap inputs to begin</div>
+        </div>
+
+        <div id="grid-area">
             <div id="candidates-container"></div>
         </div>
+    </main>
+
+    <div id="filter-bar-container">
+        <div id="filter-bar"></div>
     </div>
-
-    <div id="filter-bar" style="display:none;"> </div>
-
-    <div id="helper-text">Tap to count letters...</div>
 
     <div class="controls">
         <div class="zone" id="btn-left"></div>
@@ -166,32 +285,38 @@
     </div>
 
     <script>
+        // --- CONFIGURATION ---
         const MODEL_NAME = "gemini-1.5-flash"; 
         let apiKey = localStorage.getItem("gemini_api_key");
+        
         if (!apiKey) {
-            apiKey = prompt("Paste Gemini API Key:");
+            apiKey = prompt("Please paste your Gemini API Key:");
             if (apiKey) localStorage.setItem("gemini_api_key", apiKey);
         }
 
-        // STATE
+        // --- STATE ---
         let mode = "LENGTH"; 
         let wordLength = 0;
         let firstShape = "";
         let lastShape = "";
         let lengthTimer = null;
-        
-        let allCandidates = []; // Stores the raw list from AI
-        let activeFilters = new Set(); // Stores letters currently pressed
+        let allCandidates = [];
+        let activeFilters = new Set();
 
+        // --- DOM ---
         const resultWordEl = document.getElementById("result-word");
-        const candidatesContainer = document.getElementById("candidates-container");
-        const filterBar = document.getElementById("filter-bar");
         const helperText = document.getElementById("helper-text");
         const statusText = document.getElementById("status-text");
+        const candidatesContainer = document.getElementById("candidates-container");
+        const filterBarContainer = document.getElementById("filter-bar-container");
+        const filterBar = document.getElementById("filter-bar");
+        const errorToast = document.getElementById("error-toast");
 
+        // Haptics
         const buzz = (pattern) => { if (navigator.vibrate) navigator.vibrate(pattern); };
 
-        // INITIALIZE FILTER KEYS
+        // --- INITIALIZATION ---
+        // Create Filter Keys A-Z
         const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
         alphabet.forEach(letter => {
             const key = document.createElement("div");
@@ -201,42 +326,45 @@
             filterBar.appendChild(key);
         });
 
-        // INPUT LOGIC
+        // --- INPUT LOGIC ---
         function handleInput(zone) {
             if (mode === "DONE") return;
 
             if (mode === "LENGTH") {
                 wordLength++;
-                buzz(15);
+                buzz(10); // Light tap
                 resultWordEl.innerText = wordLength; 
-                helperText.innerText = "Counting...";
+                helperText.innerText = "Counting Letters...";
+                
                 clearTimeout(lengthTimer);
                 lengthTimer = setTimeout(() => {
                     if (wordLength > 0) {
                         mode = "FIRST";
-                        buzz([50, 30, 50]); 
-                        statusText.innerText = "First Letter Shape";
-                        helperText.innerText = "L: Str | M: Mix | R: Curv";
-                        resultWordEl.innerText = "_ " + ".".repeat(wordLength-2) + " _";
+                        buzz([40, 30, 40]); // Confirmation pattern
+                        statusText.innerText = "First Letter";
+                        helperText.innerText = "Left: Straight | Mid: Mixed | Right: Curved";
+                        resultWordEl.innerText = "_ " + "· ".repeat(wordLength-2) + " _";
                     }
-                }, 1000); 
+                }, 900); 
             } 
             else if (mode === "FIRST") {
                 firstShape = getShapeName(zone);
-                buzz(30);
+                buzz(20);
                 mode = "LAST";
-                statusText.innerText = "Last Letter Shape";
-                resultWordEl.innerText = firstShape[0] + " " + ".".repeat(wordLength-2) + " _";
+                statusText.innerText = "Last Letter";
+                resultWordEl.innerText = firstShape[0] + " " + "· ".repeat(wordLength-2) + " _";
             } 
             else if (mode === "LAST") {
                 lastShape = getShapeName(zone);
-                buzz(100); 
+                buzz(80); // Heavy tap
                 mode = "DONE";
-                statusText.innerText = "Thinking...";
-                helperText.innerText = "";
-                resultWordEl.style.fontSize = "1.5rem";
-                resultWordEl.innerText = "Fetching...";
-                fetchDeepCandidates();
+                
+                statusText.innerText = "Processing";
+                helperText.innerText = "Searching database...";
+                resultWordEl.style.fontSize = "2rem";
+                resultWordEl.innerText = "Scanning...";
+                
+                fetchCandidates();
             }
         }
 
@@ -247,58 +375,76 @@
             return "Mixed";
         }
 
-        // AI FETCH
-        async function fetchDeepCandidates() {
-            // We ask for 60 words to create a massive safety net
+        // --- API HANDLER ---
+        async function fetchCandidates() {
             const prompt = `
-            Task: List ALL English words (up to 60) fitting these rules:
-            - Length: EXACTLY ${wordLength} letters.
-            - First Letter Shape: ${firstShape}.
-            - Last Letter Shape: ${lastShape}.
-
-            Shapes:
+            Return a JSON Array of up to 45 English words.
+            Rules: Length ${wordLength}, Starts with ${firstShape}, Ends with ${lastShape}.
+            Shape Guide:
             - Straight: A, E, F, H, I, K, L, M, N, T, V, W, X, Y, Z
             - Mixed: B, D, G, J, P, Q, R, U
             - Curved: C, O, S
-
-            Output: JSON Array of Strings. No markdown.
-            Example: ["WORD1", "WORD2"]
+            Output ONLY JSON. Example: ["WORD1", "WORD2"]
             `;
+            
+            // Safety settings to prevent blocks
+            const safetySettings = [
+                { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+            ];
 
             try {
                 const controller = new AbortController();
-                setTimeout(() => controller.abort(), 12000);
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
 
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+                    body: JSON.stringify({ 
+                        contents: [{ parts: [{ text: prompt }] }],
+                        safetySettings: safetySettings 
+                    }),
                     signal: controller.signal
                 });
                 
+                clearTimeout(timeoutId);
+                
+                if(!response.ok) throw new Error("API Error");
+
                 const data = await response.json();
                 let rawText = data.candidates[0].content.parts[0].text;
                 rawText = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
                 
-                allCandidates = JSON.parse(rawText);
-                allCandidates.sort(); // Sort A-Z
+                try {
+                    allCandidates = JSON.parse(rawText);
+                } catch {
+                    // Fallback parse
+                    allCandidates = rawText.split(/[\n,]+/).map(w => w.trim().replace(/["\[\]]/g, "")).filter(w => w.length === wordLength);
+                }
 
-                // Show the filter bar now
-                filterBar.style.display = "flex";
+                allCandidates = allCandidates.map(w => w.toUpperCase()).sort();
                 
-                // Render initial list
+                // Show UI
+                filterBarContainer.style.display = "flex";
+                statusText.innerText = "Results Found";
+                helperText.innerText = "Tap a filter to narrow down";
                 renderResults(allCandidates);
 
             } catch (error) {
                 console.error(error);
                 resultWordEl.innerText = "RETRY";
+                errorToast.style.display = "block";
+                setTimeout(() => errorToast.style.display = "none", 3000);
             }
         }
 
-        // FILTER LOGIC
+        // --- RENDER & FILTER ---
         function toggleFilter(letter, keyElement) {
             if (allCandidates.length === 0) return;
 
+            buzz(10);
             if (activeFilters.has(letter)) {
                 activeFilters.delete(letter);
                 keyElement.classList.remove("active");
@@ -306,20 +452,16 @@
                 activeFilters.add(letter);
                 keyElement.classList.add("active");
             }
-            
             applyFilters();
         }
 
         function applyFilters() {
-            // Filter allCandidates based on activeFilters
             const filtered = allCandidates.filter(word => {
-                // Word must contain ALL active filter letters
                 for (let filterChar of activeFilters) {
-                    if (!word.toUpperCase().includes(filterChar)) return false;
+                    if (!word.includes(filterChar)) return false;
                 }
                 return true;
             });
-            
             renderResults(filtered);
         }
 
@@ -327,24 +469,28 @@
             candidatesContainer.innerHTML = "";
             
             if (words.length === 0) {
-                resultWordEl.innerText = "0 MATCHES";
+                resultWordEl.innerText = "NONE";
                 return;
             }
 
-            // Update Main Word
-            resultWordEl.style.fontSize = "2.5rem";
-            resultWordEl.innerText = words[0].toUpperCase();
+            // Update main display
+            resultWordEl.style.fontSize = "3.5rem";
+            resultWordEl.innerText = words[0];
 
             // Populate Grid
             words.forEach(word => {
                 const btn = document.createElement("div");
                 btn.className = "candidate-btn";
-                btn.innerText = word.toUpperCase();
-                btn.onclick = () => { resultWordEl.innerText = word.toUpperCase(); };
+                btn.innerText = word;
+                btn.onclick = () => { 
+                    resultWordEl.innerText = word; 
+                    buzz(10);
+                };
                 candidatesContainer.appendChild(btn);
             });
         }
 
+        // --- RESET ---
         function resetApp() {
             mode = "LENGTH";
             wordLength = 0;
@@ -352,25 +498,25 @@
             lastShape = "";
             allCandidates = [];
             activeFilters.clear();
+
+            buzz(30);
             
-            // UI Resets
-            resultWordEl.style.fontSize = "2.5rem";
+            // UI Reset
+            resultWordEl.style.fontSize = "3.5rem";
             resultWordEl.innerText = "";
             candidatesContainer.innerHTML = "";
-            filterBar.style.display = "none";
-            helperText.innerText = "Tap to count letters...";
-            statusText.innerText = "Ready";
+            filterBarContainer.style.display = "none";
+            helperText.innerText = "Tap inputs to begin";
+            statusText.innerText = "System Ready";
             
-            // Reset keys
             document.querySelectorAll('.letter-key').forEach(k => k.classList.remove('active'));
-            
-            buzz(20);
         }
 
         // Listeners
         document.getElementById('btn-left').addEventListener('click', () => handleInput('left'));
         document.getElementById('btn-mid').addEventListener('click', () => handleInput('mid'));
         document.getElementById('btn-right').addEventListener('click', () => handleInput('right'));
+
     </script>
 </body>
 </html>

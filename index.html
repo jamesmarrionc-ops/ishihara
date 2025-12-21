@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Bookends</title>
+    <title>Cipher v2</title>
     <style>
         body {
             margin: 0;
@@ -15,7 +15,7 @@
             display: flex;
             flex-direction: column;
             user-select: none;
-            -webkit-user-select: none; /* Prevent selection */
+            -webkit-user-select: none; 
             touch-action: manipulation;
         }
         #display {
@@ -25,8 +25,8 @@
             justify-content: center;
             align-items: center;
             text-align: center;
-            font-size: 1.5rem;
-            color: #222; /* Almost invisible text */
+            font-size: 1.8rem;
+            color: #222; 
             padding: 20px;
         }
         .controls {
@@ -36,26 +36,41 @@
         }
         .zone {
             flex: 1;
-            /* border: 1px solid #111; Debug borders */
+            /* border: 1px solid #111; */ /* Debug borders off */
+        }
+        .status-dot {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #333;
         }
         .debug {
             position: absolute;
             top: 10px;
             left: 10px;
-            color: #222;
+            color: #333;
             font-size: 12px;
         }
     </style>
 </head>
 <body>
 
-    <div class="debug" id="status">Mode: Length</div>
+    <div class="debug" id="status-text">Ready</div>
+    <div class="status-dot" id="conn-dot"></div>
+    
     <div id="display">Tap count...</div>
 
-    <div class="controls" id="touch-area">
+    <div class="controls">
         <div class="zone" id="btn-left"></div>   <div class="zone" id="btn-mid"></div>    <div class="zone" id="btn-right"></div>  </div>
 
     <script>
+        // --- CONFIGURATION ---
+        // UPDATED MODEL to 2.5 Flash for stability
+        const MODEL_NAME = "gemini-2.5-flash"; 
+        
         let apiKey = localStorage.getItem("gemini_api_key");
         if (!apiKey) {
             apiKey = prompt("Enter Gemini API Key:");
@@ -63,37 +78,35 @@
         }
 
         // State Machine
-        let mode = "LENGTH"; // LENGTH, FIRST, LAST, DONE
+        let mode = "LENGTH"; 
         let wordLength = 0;
         let firstShape = "";
         let lastShape = "";
         let lengthTimer = null;
 
         const display = document.getElementById("display");
-        const status = document.getElementById("status");
+        const statusText = document.getElementById("status-text");
+        const dot = document.getElementById("conn-dot");
 
-        // Vibrator helper
         const buzz = (ms) => { if (navigator.vibrate) navigator.vibrate(ms); };
 
-        // INPUT HANDLER
+        // INPUT LOGIC
         function handleInput(zone) {
             
             if (mode === "LENGTH") {
-                // Any tap counts as +1
                 wordLength++;
-                buzz(30); // Short buzz
+                buzz(20); 
                 display.innerText = wordLength; 
                 
-                // Reset timer. If no tap for 2 seconds, lock length.
                 clearTimeout(lengthTimer);
                 lengthTimer = setTimeout(() => {
                     if (wordLength > 0) {
                         mode = "FIRST";
-                        buzz([50, 50, 50]); // Double buzz: Length Locked
-                        status.innerText = "Mode: First (L=Str, M=Mix, R=Curv)";
+                        buzz([40, 40]); // Double buzz = Length Locked
+                        statusText.innerText = "First Letter?";
                         display.innerText = "_ " + ".".repeat(wordLength-2) + " _";
                     }
-                }, 1500); // 1.5 seconds silence to lock length
+                }, 1200); 
             } 
             
             else if (mode === "FIRST") {
@@ -101,9 +114,9 @@
                 if (zone === 'mid') firstShape = "Mixed";
                 if (zone === 'right') firstShape = "Curved";
                 
-                buzz(50);
+                buzz(30);
                 mode = "LAST";
-                status.innerText = "Mode: Last (L=Str, M=Mix, R=Curv)";
+                statusText.innerText = "Last Letter?";
                 display.innerText = firstShape[0] + " " + ".".repeat(wordLength-2) + " _";
             } 
             
@@ -112,24 +125,24 @@
                 if (zone === 'mid') lastShape = "Mixed";
                 if (zone === 'right') lastShape = "Curved";
                 
-                buzz(100); // Long buzz: Generating
+                buzz(100); 
                 mode = "DONE";
-                status.innerText = "Thinking...";
+                statusText.innerText = "Thinking...";
                 display.innerText = "Thinking...";
+                display.style.color = "#666";
+                
                 fetchPrediction();
             }
             
             else if (mode === "DONE") {
-                // Tap to reset
                 reset();
             }
         }
 
-        // Zone Listeners
+        // Listeners
         document.getElementById('btn-left').addEventListener('click', () => handleInput('left'));
         document.getElementById('btn-mid').addEventListener('click', () => handleInput('mid'));
         document.getElementById('btn-right').addEventListener('click', () => handleInput('right'));
-        // For length, tapping anywhere works, but let's stick to the zones to keep it simple.
 
         function reset() {
             mode = "LENGTH";
@@ -137,42 +150,57 @@
             firstShape = "";
             lastShape = "";
             display.innerText = "Tap count...";
-            status.innerText = "Mode: Length";
+            statusText.innerText = "Ready";
             display.style.color = "#222";
+            dot.style.backgroundColor = "#333";
         }
 
         async function fetchPrediction() {
             const prompt = `
-            Task: Mentalism Word Reveal.
-            Identify common English words that fit these constraints:
-            1. Length: Exactly ${wordLength} letters.
-            2. First Letter Shape: ${firstShape}.
-            3. Last Letter Shape: ${lastShape}.
+            Strict Task: Mentalism Word Reveal.
+            
+            1. Find the most common English word that fits this shape pattern:
+               - Length: EXACTLY ${wordLength} letters.
+               - First Letter is: ${firstShape}.
+               - Last Letter is: ${lastShape}.
+            
+            2. ALSO: If that word has any common ANAGRAMS (same letters, different word), list them too.
 
-            Use these Strict Shape Definitions:
+            Shape Definitions:
             - Straight: A, E, F, H, I, K, L, M, N, T, V, W, X, Y, Z
             - Mixed: B, D, G, J, P, Q, R, U
             - Curved: C, O, S
 
-            Output: Return only the Top 3-5 most common words.
-            Format: Uppercase, separated by newlines. No explanations.
-            If user input seems like "Tiger", ensure Tiger is in the list.
+            Output Format:
+            WORD (Anagrams)
+            WORD (Anagrams)
+            
+            Example Output:
+            TIGER
+            WATER (Wart, Raw)
+            LATER (Alert, Alter)
             `;
 
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                // UPDATED URL
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
                 
+                if (!response.ok) throw new Error("API Error");
+
                 const data = await response.json();
                 const text = data.candidates[0].content.parts[0].text;
                 
-                display.style.color = "#AAA"; // Make text visible for magician
+                display.style.color = "#EEE"; 
                 display.innerText = text;
+                dot.style.backgroundColor = "#0F0"; // Green light = Success
             } catch (error) {
-                display.innerText = "Error/Offline";
+                display.innerText = "Error / Retry";
+                dot.style.backgroundColor = "#F00"; // Red light = Fail
+                console.error(error);
             }
         }
     </script>

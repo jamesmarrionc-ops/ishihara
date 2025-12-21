@@ -3,514 +3,200 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cipher Pro v10</title>
+    <title>System</title>
     <style>
-        :root {
-            --bg: #000000;
-            --surface: #121212;
-            --surface-highlight: #1E1E1E;
-            --accent: #0A84FF;
-            --text-primary: #FFFFFF;
-            --text-secondary: #8E8E93;
-            --border: #333333;
-            --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif;
-            --btn-height: 56px;
-        }
-
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
+        /* MENTALIST DARK MODE */
         body {
-            margin: 0;
-            background-color: var(--bg);
-            color: var(--text-primary);
-            font-family: var(--font-stack);
+            background-color: #000;
+            color: #444;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             height: 100vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            margin: 0;
+            overflow: hidden; /* Prevent scrolling */
         }
 
-        /* --- HEADER --- */
-        header {
-            height: 50px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 20px;
-            border-bottom: 1px solid var(--border);
+        #container {
+            width: 85%;
+            max-width: 400px;
+            text-align: center;
         }
 
-        .brand {
-            font-weight: 700;
-            font-size: 14px;
-            letter-spacing: 0.5px;
-            color: var(--text-secondary);
-        }
-
-        .actions { display: flex; gap: 15px; }
-        .action-text {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--accent);
-            cursor: pointer;
-        }
-
-        /* --- MAIN AREA --- */
-        main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
+        /* Stealth Input */
+        input {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            color: #eee;
             padding: 20px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* RESULT DISPLAY */
-        .display-card {
-            background: var(--surface);
-            border-radius: 20px;
-            padding: 30px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 160px;
-            margin-bottom: 20px;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
-
-        #main-text {
-            font-size: 4rem;
-            font-weight: 800;
-            letter-spacing: -2px;
-            line-height: 1;
+            width: 100%;
+            box-sizing: border-box; 
+            font-size: 20px;
             text-align: center;
-            margin-bottom: 8px;
-        }
-
-        #sub-text {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        /* TAP ZONE (Phase 1) */
-        #tap-zone {
-            flex: 1;
-            background: var(--surface-highlight);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: background 0.1s;
-            position: relative;
-            overflow: hidden;
-        }
-        #tap-zone:active { background: #2A2A2A; }
-        
-        .tap-label {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--text-secondary);
-            pointer-events: none;
-        }
-
-        /* SHAPE CONTROLS (Phase 2) */
-        #shape-controls {
-            position: absolute;
-            bottom: 30px; left: 20px; right: 20px;
-            display: flex;
-            gap: 10px;
-            transform: translateY(150%);
-            transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
-        }
-        #shape-controls.visible { transform: translateY(0); }
-
-        .btn {
-            flex: 1;
-            height: var(--btn-height);
-            background: var(--surface-highlight);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            color: var(--text-primary);
-            font-weight: 600;
-            font-size: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .btn:active {
-            background: var(--accent);
-            border-color: var(--accent);
-            transform: scale(0.96);
-        }
-
-        /* RESULTS GRID (Phase 3) */
-        #results-grid {
-            flex: 1;
-            overflow-y: auto;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            align-content: start;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
-        }
-        #results-grid.visible { opacity: 1; pointer-events: auto; }
-
-        .result-item {
-            background: var(--surface-highlight);
-            padding: 15px;
-            border-radius: 12px;
-            text-align: center;
-            font-weight: 600;
-            color: #ccc;
-            border: 1px solid transparent;
-        }
-        .result-item:active { background: #fff; color: #000; }
-
-        /* FILTER BAR */
-        #filter-scroller {
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            height: 60px;
-            background: rgba(0,0,0,0.9);
-            backdrop-filter: blur(20px);
-            display: flex;
-            align-items: center;
-            padding: 0 15px;
-            overflow-x: auto;
-            gap: 5px;
-            transform: translateY(100%);
-            transition: transform 0.3s;
-            border-top: 1px solid #222;
-        }
-        #filter-scroller.visible { transform: translateY(0); }
-
-        .filter-key {
-            min-width: 36px;
-            height: 36px;
-            background: #222;
             border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-            font-weight: 700;
-            color: #fff;
-            flex-shrink: 0;
+            outline: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
-        .filter-key.active { background: var(--accent); }
 
-        /* ERROR MODAL */
-        #error-overlay {
-            position: absolute;
-            top: 20px; left: 20px; right: 20px;
-            background: #FF3B30;
-            color: white;
-            padding: 16px;
-            border-radius: 12px;
+        input:focus {
+            border-color: #444;
+        }
+
+        /* Hidden/Ghost Button */
+        button {
+            margin-top: 20px;
+            background: transparent;
+            color: #333;
+            border: 1px solid #111;
+            padding: 10px 30px;
+            cursor: pointer;
             font-size: 14px;
-            font-weight: 600;
-            display: none;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            z-index: 100;
+            border-radius: 5px;
+            transition: color 0.3s;
+        }
+        
+        button:active {
+            color: #fff;
+            border-color: #333;
         }
 
+        /* Result List */
+        #result-area {
+            margin-top: 40px;
+            text-align: center;
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+
+        .word-item {
+            color: #888;
+            padding: 12px;
+            font-size: 24px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            border-bottom: 1px solid #111;
+        }
+
+        .word-item:hover {
+            color: #fff;
+        }
+
+        .error-log {
+            color: #300;
+            font-size: 10px;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="brand">CIPHER PRO v10</div>
-        <div class="actions">
-            <div class="action-text" onclick="editKey()">API Key</div>
-            <div class="action-text" onclick="resetApp()">Reset</div>
-        </div>
-    </header>
+<div id="container">
+    <input type="text" id="inputData" placeholder="..." autocomplete="off">
+    <button id="procBtn" onclick="fetchWords()">ACQUIRE</button>
+    
+    <div id="result-area"></div>
+    <div id="error-log" class="error-log"></div>
+</div>
 
-    <main>
-        <div id="error-overlay"></div>
+<script>
+    // --- CONFIGURATION ---
+    // PASTE YOUR NEW KEY HERE (Keep the quotes!)
+    const API_KEY = 'YOUR_NEW_GOOGLE_API_KEY_HERE'; 
+    
+    // Using the standard Flash model for speed
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
-        <div class="display-card" id="display-card">
-            <div id="main-text">0</div>
-            <div id="sub-text">Tap below to count</div>
-        </div>
+    async function fetchWords() {
+        const input = document.getElementById('inputData').value;
+        const resultArea = document.getElementById('result-area');
+        const errorLog = document.getElementById('error-log');
+        
+        if(!input) return;
 
-        <div id="tap-zone" onclick="handleTap()">
-            <div class="tap-label">TAP AREA</div>
-        </div>
+        // Visual feedback
+        resultArea.innerHTML = '<div style="color:#222; font-size:14px;">CALCULATING...</div>';
+        errorLog.innerText = '';
 
-        <div id="results-grid"></div>
+        // The Prompt ensures pure JSON output
+        const promptText = `
+            Task: Anagram/Word completion.
+            Input: "${input}"
+            
+            Strict Rules:
+            1. Return ONLY a JSON array of strings (e.g. ["WORD1", "WORD2"]).
+            2. No other text. No markdown blocks.
+            3. If user gives scrambled letters, find the word.
+            4. If user gives constraints (starts with...), find the word.
+        `;
 
-        <div id="shape-controls">
-            <div class="btn" onclick="handleShape('Left')">Straight</div>
-            <div class="btn" onclick="handleShape('Mid')">Mixed</div>
-            <div class="btn" onclick="handleShape('Right')">Curved</div>
-        </div>
-    </main>
+        const payload = {
+            contents: [{
+                parts: [{ text: promptText }]
+            }]
+        };
 
-    <div id="filter-scroller">
-        </div>
-
-    <script>
-        // --- CONFIG ---
-        // Fallback system: if one fails, try the next
-        const MODELS = ["gemini-1.5-flash", "gemini-pro", "gemini-1.5-pro"];
-        let currentModelIndex = 0;
-        let apiKey = localStorage.getItem("cipher_api_key");
-
-        // --- STATE ---
-        let mode = "COUNT"; // COUNT | SHAPE_1 | SHAPE_2 | DONE
-        let count = 0;
-        let countTimer = null;
-        let firstShape = "";
-        let lastShape = "";
-        let allCandidates = [];
-        let activeFilters = new Set();
-
-        // --- DOM ---
-        const mainText = document.getElementById('main-text');
-        const subText = document.getElementById('sub-text');
-        const tapZone = document.getElementById('tap-zone');
-        const shapeControls = document.getElementById('shape-controls');
-        const resultsGrid = document.getElementById('results-grid');
-        const filterScroller = document.getElementById('filter-scroller');
-        const errorOverlay = document.getElementById('error-overlay');
-
-        // --- INITIALIZATION ---
-        if (!apiKey) editKey();
-        initFilters();
-
-        function editKey() {
-            let key = prompt("Paste Google Gemini API Key:\n(Leading spaces will be trimmed automatically)");
-            if (key) {
-                apiKey = key.trim(); // TRIM WHITESPACE to fix 404/400 errors
-                localStorage.setItem("cipher_api_key", apiKey);
-                window.location.reload();
-            }
-        }
-
-        function initFilters() {
-            const abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-            abc.forEach(l => {
-                const k = document.createElement("div");
-                k.className = "filter-key";
-                k.innerText = l;
-                k.onclick = () => toggleFilter(l, k);
-                filterScroller.appendChild(k);
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
-        }
-
-        // --- INPUT HANDLERS ---
-        function handleTap() {
-            if (mode !== "COUNT") return;
-            
-            count++;
-            if(navigator.vibrate) navigator.vibrate(10);
-            
-            mainText.innerText = count;
-            subText.innerText = "Counting...";
-
-            clearTimeout(countTimer);
-            countTimer = setTimeout(() => {
-                if (count > 0) {
-                    lockCount();
-                }
-            }, 1000); // 1s wait locks the count
-        }
-
-        function lockCount() {
-            mode = "SHAPE_1";
-            if(navigator.vibrate) navigator.vibrate(50);
-            
-            // UI Transition
-            tapZone.style.display = "none";
-            shapeControls.classList.add("visible");
-            
-            mainText.innerText = "_ " + "· ".repeat(count - 2) + " _";
-            subText.innerText = "First Letter Shape?";
-        }
-
-        function handleShape(zone) {
-            let shape = "Mixed";
-            if (zone === "Left") shape = "Straight";
-            if (zone === "Right") shape = "Curved";
-
-            if (mode === "SHAPE_1") {
-                firstShape = shape;
-                mode = "SHAPE_2";
-                if(navigator.vibrate) navigator.vibrate(20);
-                mainText.innerText = firstShape[0] + " " + "· ".repeat(count - 2) + " _";
-                subText.innerText = "Last Letter Shape?";
-            } 
-            else if (mode === "SHAPE_2") {
-                lastShape = shape;
-                mode = "DONE";
-                if(navigator.vibrate) navigator.vibrate(50);
-                
-                shapeControls.classList.remove("visible");
-                subText.innerText = "Scanning Database...";
-                mainText.style.fontSize = "2rem";
-                mainText.innerText = "Loading...";
-                
-                fetchWords();
-            }
-        }
-
-        // --- API LOGIC (ROBUST) ---
-        async function fetchWords() {
-            errorOverlay.style.display = 'none';
-            const prompt = `List 50 English words. Length ${count}, starts with ${firstShape} shape, ends with ${lastShape} shape. Straight: AEFHIKLMNTVWXYZ. Mixed: BDGJPQRU. Curved: COS. Return JSON array only.`;
-
-            // Try models in order
-            for (let i = 0; i < MODELS.length; i++) {
-                let model = MODELS[i];
-                console.log("Trying model:", model);
-                
-                try {
-                    const success = await callGemini(model, prompt);
-                    if (success) return; // Stop if it worked
-                } catch (e) {
-                    console.warn(model + " failed", e);
-                    if (i === MODELS.length - 1) {
-                        // All failed
-                        showError("Error: Check API Key or Quota. " + e.message);
-                        resetUIForRetry();
-                    }
-                }
-            }
-        }
-
-        async function callGemini(modelName, promptText) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-            
-            const response = await fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-            });
-
-            if (!response.ok) {
-                if (response.status === 404) throw new Error("Model Not Found (404)");
-                if (response.status === 400) throw new Error("Bad Request (400)");
-                throw new Error("HTTP " + response.status);
-            }
 
             const data = await response.json();
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            
-            if (!text) throw new Error("Empty Response");
 
-            // Parse
-            try {
-                const clean = text.replace(/```json/g, "").replace(/```/g, "").trim();
-                let words = [];
-                try {
-                     words = JSON.parse(clean);
-                } catch {
-                     // Fallback regex
-                     words = clean.match(/[a-zA-Z]+/g);
-                }
+            // PARSE GEMINI RESPONSE STRUCTURE
+            // Gemini structure: data.candidates[0].content.parts[0].text
+            if (!data.candidates || data.candidates.length === 0) {
+                throw new Error("No candidates returned");
+            }
+
+            let rawText = data.candidates[0].content.parts[0].text;
+            
+            // Clean markdown if Gemini adds it (```json ... ```)
+            rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+            
+            const wordList = JSON.parse(rawText);
+
+            // RENDER
+            resultArea.innerHTML = ''; 
+            
+            if (wordList.length === 0) {
+                resultArea.innerHTML = '<div style="color:#333">NO SIGNAL</div>';
+                return;
+            }
+
+            wordList.forEach(word => {
+                const div = document.createElement('div');
+                div.className = 'word-item';
+                div.innerText = word;
                 
-                // Filter by length just to be safe
-                allCandidates = words
-                    .filter(w => w.length === count)
-                    .map(w => w.toUpperCase())
-                    .sort();
-
-                showResults();
-                return true;
-            } catch (e) {
-                throw new Error("Parse Error");
-            }
-        }
-
-        // --- RENDER ---
-        function showResults() {
-            subText.innerText = "Results Found";
-            mainText.innerText = allCandidates[0] || "NONE";
-            mainText.style.fontSize = "3.5rem";
-            
-            resultsGrid.innerHTML = "";
-            resultsGrid.classList.add("visible");
-            filterScroller.classList.add("visible");
-
-            allCandidates.forEach(w => {
-                const div = document.createElement("div");
-                div.className = "result-item";
-                div.innerText = w;
+                // Click to "select" (Visual Force)
                 div.onclick = () => {
-                    mainText.innerText = w;
-                    if(navigator.vibrate) navigator.vibrate(10);
+                    div.style.color = "#fff";
+                    div.style.fontWeight = "bold";
+                    div.style.textShadow = "0 0 10px #fff";
                 };
-                resultsGrid.appendChild(div);
-            });
-        }
-
-        function toggleFilter(char, el) {
-            if(activeFilters.has(char)) {
-                activeFilters.delete(char);
-                el.classList.remove("active");
-            } else {
-                activeFilters.add(char);
-                el.classList.add("active");
-            }
-            
-            const filtered = allCandidates.filter(w => {
-                for(let f of activeFilters) if(!w.includes(f)) return false;
-                return true;
+                
+                resultArea.appendChild(div);
             });
 
-            resultsGrid.innerHTML = "";
-            filtered.forEach(w => {
-                const div = document.createElement("div");
-                div.className = "result-item";
-                div.innerText = w;
-                div.onclick = () => mainText.innerText = w;
-                resultsGrid.appendChild(div);
-            });
-            
-            if(filtered.length > 0) mainText.innerText = filtered[0];
-            else mainText.innerText = "NONE";
+        } catch (error) {
+            console.error(error);
+            resultArea.innerHTML = '';
+            errorLog.innerText = "CONNECTION ERROR";
         }
+    }
 
-        function showError(msg) {
-            errorOverlay.innerText = msg;
-            errorOverlay.style.display = "block";
-            setTimeout(() => errorOverlay.style.display = "none", 5000);
+    // Allow "Enter" key to trigger
+    document.getElementById("inputData").addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            fetchWords();
         }
+    });
+</script>
 
-        function resetUIForRetry() {
-             mainText.innerText = "Retry";
-             subText.innerText = "Tap Reset";
-        }
-
-        function resetApp() {
-            mode = "COUNT";
-            count = 0;
-            allCandidates = [];
-            activeFilters.clear();
-            
-            tapZone.style.display = "flex";
-            shapeControls.classList.remove("visible");
-            resultsGrid.classList.remove("visible");
-            filterScroller.classList.remove("visible");
-            
-            mainText.style.fontSize = "4rem";
-            mainText.innerText = "0";
-            subText.innerText = "Tap below to count";
-            
-            document.querySelectorAll(".filter-key").forEach(k => k.classList.remove("active"));
-        }
-
-    </script>
 </body>
 </html>

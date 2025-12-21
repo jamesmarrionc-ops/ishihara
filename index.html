@@ -3,16 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cipher Pro v8</title>
+    <title>Cipher Pro v9</title>
     <style>
         :root {
-            --bg-color: #0d0d0d;
-            --card-color: #1c1c1e;
-            --accent-color: #0a84ff;
+            --bg-color: #050505;
+            --card-color: #1a1a1a;
+            --accent-color: #007AFF;
             --text-primary: #ffffff;
-            --text-secondary: #8e8e93;
-            --border-radius: 20px;
-            --btn-radius: 14px;
+            --text-secondary: #888;
             --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
         }
 
@@ -30,225 +28,219 @@
 
         /* --- HEADER --- */
         header {
-            height: 60px;
+            height: 50px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 24px;
-            z-index: 10;
+            padding: 0 20px;
+            z-index: 20;
+            border-bottom: 1px solid #222;
         }
 
         .status-badge {
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
             color: var(--text-secondary);
             text-transform: uppercase;
-            background: rgba(255,255,255,0.05);
+            background: #111;
             padding: 6px 12px;
             border-radius: 20px;
+            border: 1px solid #333;
         }
 
-        .reset-icon {
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(255,255,255,0.1);
-            border-radius: 50%;
+        .icon-btn {
+            font-size: 18px;
+            color: #666;
+            padding: 8px;
             cursor: pointer;
-            font-size: 14px;
-            color: #fff;
-            transition: transform 0.2s, background 0.2s;
-        }
-        .reset-icon:active {
-            transform: scale(0.9);
-            background: rgba(255,255,255,0.2);
         }
 
-        /* --- MAIN CONTENT (BENTO LAYOUT) --- */
+        /* --- MAIN CONTENT --- */
         main {
             flex: 1;
-            padding: 10px 16px;
+            padding: 16px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            overflow: hidden;
+            gap: 16px;
+            position: relative;
         }
 
-        /* 1. RESULT CARD */
+        /* RESULT CARD */
         #result-card {
             background-color: var(--card-color);
-            border-radius: var(--border-radius);
-            padding: 24px;
+            border-radius: 24px;
+            padding: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 140px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            transition: all 0.3s ease;
-            position: relative;
+            min-height: 120px;
             flex-shrink: 0;
+            transition: all 0.3s ease;
+            border: 1px solid #333;
         }
 
         #result-word {
-            font-size: 3.5rem;
+            font-size: 3rem;
             font-weight: 800;
-            letter-spacing: -1px;
-            line-height: 1;
             text-align: center;
-            background: linear-gradient(180deg, #fff, #bbb);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #fff;
             margin: 10px 0;
-            white-space: nowrap;
+            line-height: 1;
         }
 
         #helper-text {
             font-size: 0.9rem;
             color: var(--text-secondary);
-            font-weight: 500;
-            opacity: 0.8;
+            margin-top: 5px;
         }
 
-        /* 2. CANDIDATES GRID (Scrollable) */
+        /* --- PHASE 1: BIG TAP BUTTON --- */
+        #tap-surface {
+            position: absolute;
+            top: 180px; /* Below result card */
+            left: 16px;
+            right: 16px;
+            bottom: 16px;
+            background: #111;
+            border: 2px dashed #333;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 50;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        #tap-surface.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.9);
+        }
+        
+        .tap-icon {
+            font-size: 40px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .tap-label {
+            color: #444;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        /* --- PHASE 2: GRID & SHAPE CONTROLS --- */
         #grid-area {
             flex: 1;
             overflow-y: auto;
-            border-radius: var(--border-radius);
-            /* Hide Scrollbar */
-            scrollbar-width: none;
-            -ms-overflow-style: none;
+            border-radius: 16px;
+            /* Hide initially, fade in later */
+            opacity: 0; 
+            transition: opacity 0.5s;
         }
-        #grid-area::-webkit-scrollbar { display: none; }
+        #grid-area.visible { opacity: 1; }
 
         #candidates-container {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            padding-bottom: 80px; /* Space for floating bar */
+            gap: 8px;
+            padding-bottom: 100px;
         }
 
         .candidate-btn {
-            background: rgba(255,255,255,0.06);
-            padding: 18px;
-            border-radius: var(--btn-radius);
+            background: #111;
+            padding: 16px;
+            border-radius: 12px;
             text-align: center;
             font-size: 1rem;
             font-weight: 600;
-            color: #ccc;
-            transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
-            border: 1px solid transparent;
+            color: #888;
+            border: 1px solid #222;
         }
-        .candidate-btn:active {
-            transform: scale(0.96);
-            background: rgba(255,255,255,0.15);
-            color: #fff;
-        }
+        .candidate-btn:active { background: #fff; color: #000; }
 
-        /* --- FILTER BAR (Glassmorphism) --- */
-        #filter-bar-container {
+        /* --- SHAPE CONTROLS (Bottom) --- */
+        .controls-container {
             position: fixed;
-            bottom: 34vh; /* sits just above controls */
-            left: 16px; 
-            right: 16px;
-            height: 50px;
-            display: none; /* JS toggles flex */
-            align-items: center;
-            z-index: 50;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 30vh;
+            background: #000;
+            border-top: 1px solid #222;
+            display: flex;
+            transform: translateY(110%); /* Hidden by default */
+            transition: transform 0.4s cubic-bezier(0.17, 0.67, 0.23, 1); /* Slide up effect */
+            z-index: 60;
+        }
+        .controls-container.active {
+            transform: translateY(0);
         }
 
-        #filter-bar {
-            display: flex;
+        .zone {
+            flex: 1;
+            position: relative;
+            background: #0a0a0a;
+            border-right: 1px solid #222;
+        }
+        .zone:last-child { border-right: none; }
+        .zone:active { background: #222; }
+
+        .zone::after {
+            content: attr(data-label);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 14px;
+            font-weight: 700;
+            color: #444;
+        }
+
+        /* --- FILTER BAR --- */
+        #filter-bar-wrapper {
+            position: fixed;
+            bottom: 31vh; /* Above controls */
+            left: 0; right: 0;
+            height: 45px;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            display: none; /* Hidden until results */
             align-items: center;
             overflow-x: auto;
-            gap: 6px;
             padding: 0 10px;
-            width: 100%;
-            height: 100%;
-            background: rgba(28, 28, 30, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 16px;
-            border: 1px solid rgba(255,255,255,0.08);
-            scrollbar-width: none;
+            z-index: 70;
+            border-top: 1px solid #222;
         }
-        #filter-bar::-webkit-scrollbar { display: none; }
 
         .letter-key {
-            min-width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            background: rgba(255,255,255,0.08);
+            min-width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            background: #222;
             color: #fff;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: 14px;
-            flex-shrink: 0;
-            transition: all 0.2s;
-        }
-        .letter-key.active {
-            background: var(--accent-color);
-            color: #fff;
-            box-shadow: 0 0 10px rgba(10, 132, 255, 0.4);
-        }
-
-        /* --- INPUT CONTROLS (Bottom Bento) --- */
-        .controls {
-            height: 32vh;
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 8px;
-            padding: 0 16px 20px 16px;
+            font-size: 13px;
+            margin-right: 4px;
             flex-shrink: 0;
         }
+        .letter-key.active { background: var(--accent-color); }
 
-        .zone {
-            background: var(--card-color);
-            border-radius: var(--border-radius);
-            position: relative;
-            overflow: hidden;
-            transition: background 0.2s;
-        }
-        .zone:active {
-            background: #2c2c2e;
-        }
-        
-        /* Subtle labels for the zones */
-        .zone::after {
-            content: '';
-            position: absolute;
-            bottom: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 10px;
-            color: #444;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        #btn-left::after { content: 'STR'; }
-        #btn-mid::after { content: 'MIX'; }
-        #btn-right::after { content: 'CRV'; }
-
-        /* Error Toast */
-        #error-toast {
-            position: absolute;
-            top: 70px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #ff453a;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
+        /* Error Box */
+        #error-box {
+            position: fixed;
+            top: 60px; left: 20px; right: 20px;
+            background: #330000;
+            border: 1px solid #ff4444;
+            color: #ffcccc;
+            padding: 15px;
+            border-radius: 12px;
             font-size: 12px;
-            font-weight: 600;
             display: none;
-            box-shadow: 0 4px 12px rgba(255, 69, 58, 0.3);
             z-index: 100;
         }
 
@@ -257,16 +249,22 @@
 <body>
 
     <header>
-        <div class="status-badge" id="status-text">System Ready</div>
-        <div class="reset-icon" onclick="resetApp()">✕</div>
+        <div class="status-badge" id="status-text">MODE: COUNT</div>
+        <div class="icon-btn" onclick="resetKey()">🔑</div>
+        <div class="icon-btn" onclick="resetApp()">↻</div>
     </header>
 
-    <div id="error-toast">Connection Error</div>
+    <div id="error-box"></div>
 
     <main>
         <div id="result-card">
-            <div id="result-word"></div>
-            <div id="helper-text">Tap inputs to begin</div>
+            <div id="result-word">0</div>
+            <div id="helper-text">Tap the large button below to count</div>
+        </div>
+
+        <div id="tap-surface" onclick="handleTap()">
+            <div class="tap-icon">👆</div>
+            <div class="tap-label">TAP TO COUNT</div>
         </div>
 
         <div id="grid-area">
@@ -274,32 +272,42 @@
         </div>
     </main>
 
-    <div id="filter-bar-container">
-        <div id="filter-bar"></div>
-    </div>
+    <div id="filter-bar-wrapper" id="filter-bar">
+        </div>
 
-    <div class="controls">
-        <div class="zone" id="btn-left"></div>
-        <div class="zone" id="btn-mid"></div>
-        <div class="zone" id="btn-right"></div>
+    <div class="controls-container" id="controls">
+        <div class="zone" id="btn-left" data-label="STRAIGHT" onclick="handleShape('left')"></div>
+        <div class="zone" id="btn-mid" data-label="MIXED" onclick="handleShape('mid')"></div>
+        <div class="zone" id="btn-right" data-label="CURVED" onclick="handleShape('right')"></div>
     </div>
 
     <script>
-        // --- CONFIGURATION ---
+        // --- API KEY LOGIC ---
         const MODEL_NAME = "gemini-1.5-flash"; 
         let apiKey = localStorage.getItem("gemini_api_key");
         
-        if (!apiKey) {
-            apiKey = prompt("Please paste your Gemini API Key:");
-            if (apiKey) localStorage.setItem("gemini_api_key", apiKey);
+        function checkKey() {
+            if (!apiKey || apiKey.length < 10) {
+                apiKey = prompt("Paste your Google Gemini API Key:");
+                if (apiKey) {
+                    localStorage.setItem("gemini_api_key", apiKey);
+                    window.location.reload();
+                }
+            }
+        }
+        checkKey();
+
+        function resetKey() {
+            localStorage.removeItem("gemini_api_key");
+            window.location.reload();
         }
 
         // --- STATE ---
-        let mode = "LENGTH"; 
+        let mode = "COUNT"; // COUNT, SHAPE_1, SHAPE_2, DONE
         let wordLength = 0;
+        let countTimer = null;
         let firstShape = "";
         let lastShape = "";
-        let lengthTimer = null;
         let allCandidates = [];
         let activeFilters = new Set();
 
@@ -307,158 +315,181 @@
         const resultWordEl = document.getElementById("result-word");
         const helperText = document.getElementById("helper-text");
         const statusText = document.getElementById("status-text");
+        const tapSurface = document.getElementById("tap-surface");
+        const controls = document.getElementById("controls");
+        const gridArea = document.getElementById("grid-area");
+        const filterWrapper = document.getElementById("filter-bar-wrapper");
+        const errorBox = document.getElementById("error-box");
         const candidatesContainer = document.getElementById("candidates-container");
-        const filterBarContainer = document.getElementById("filter-bar-container");
-        const filterBar = document.getElementById("filter-bar");
-        const errorToast = document.getElementById("error-toast");
 
-        // Haptics
-        const buzz = (pattern) => { if (navigator.vibrate) navigator.vibrate(pattern); };
+        // --- HAPTICS ---
+        const buzz = (ms) => { if (navigator.vibrate) navigator.vibrate(ms); };
 
-        // --- INITIALIZATION ---
-        // Create Filter Keys A-Z
-        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-        alphabet.forEach(letter => {
-            const key = document.createElement("div");
-            key.className = "letter-key";
-            key.innerText = letter;
-            key.onclick = () => toggleFilter(letter, key);
-            filterBar.appendChild(key);
-        });
+        // --- PHASE 1: COUNTING ---
+        function handleTap() {
+            if (mode !== "COUNT") return;
 
-        // --- INPUT LOGIC ---
-        function handleInput(zone) {
-            if (mode === "DONE") return;
+            wordLength++;
+            buzz(15);
+            resultWordEl.innerText = wordLength;
+            
+            // Reset "Auto-Lock" timer
+            clearTimeout(countTimer);
+            countTimer = setTimeout(lockLength, 1200); // 1.2 seconds of silence locks it
+        }
 
-            if (mode === "LENGTH") {
-                wordLength++;
-                buzz(10); // Light tap
-                resultWordEl.innerText = wordLength; 
-                helperText.innerText = "Counting Letters...";
-                
-                clearTimeout(lengthTimer);
-                lengthTimer = setTimeout(() => {
-                    if (wordLength > 0) {
-                        mode = "FIRST";
-                        buzz([40, 30, 40]); // Confirmation pattern
-                        statusText.innerText = "First Letter";
-                        helperText.innerText = "Left: Straight | Mid: Mixed | Right: Curved";
-                        resultWordEl.innerText = "_ " + "· ".repeat(wordLength-2) + " _";
-                    }
-                }, 900); 
-            } 
-            else if (mode === "FIRST") {
-                firstShape = getShapeName(zone);
-                buzz(20);
-                mode = "LAST";
-                statusText.innerText = "Last Letter";
+        function lockLength() {
+            if (wordLength < 2) {
+                wordLength = 0;
+                resultWordEl.innerText = "0";
+                return; // Ignore accidental single taps
+            }
+
+            // Transition to Phase 2
+            mode = "SHAPE_1";
+            buzz([50, 50, 50]); // Success buzz
+            
+            // UI Transition
+            tapSurface.classList.add("hidden");
+            controls.classList.add("active"); // Slide up controls
+            
+            statusText.innerText = "MODE: 1ST LETTER";
+            resultWordEl.innerText = "_ " + "· ".repeat(wordLength-2) + " _";
+            helperText.innerText = "Input First Letter Shape";
+        }
+
+        // --- PHASE 2: SHAPES ---
+        function handleShape(zone) {
+            if (mode === "DONE" || mode === "COUNT") return;
+
+            let shapeName = "Mixed";
+            if (zone === "left") shapeName = "Straight";
+            if (zone === "right") shapeName = "Curved";
+
+            if (mode === "SHAPE_1") {
+                firstShape = shapeName;
+                buzz(25);
+                mode = "SHAPE_2";
+                statusText.innerText = "MODE: LAST LETTER";
                 resultWordEl.innerText = firstShape[0] + " " + "· ".repeat(wordLength-2) + " _";
-            } 
-            else if (mode === "LAST") {
-                lastShape = getShapeName(zone);
-                buzz(80); // Heavy tap
+                helperText.innerText = "Input Last Letter Shape";
+            }
+            else if (mode === "SHAPE_2") {
+                lastShape = shapeName;
+                buzz(80);
                 mode = "DONE";
                 
-                statusText.innerText = "Processing";
-                helperText.innerText = "Searching database...";
+                // Hide controls to make room for results
+                controls.classList.remove("active");
+                
+                statusText.innerText = "SEARCHING";
+                helperText.innerText = "Deep scanning dictionary...";
                 resultWordEl.style.fontSize = "2rem";
-                resultWordEl.innerText = "Scanning...";
+                resultWordEl.innerText = "Connecting...";
                 
                 fetchCandidates();
             }
         }
 
-        function getShapeName(zone) {
-            if (zone === 'left') return "Straight";
-            if (zone === 'mid') return "Mixed"; 
-            if (zone === 'right') return "Curved";
-            return "Mixed";
-        }
-
-        // --- API HANDLER ---
+        // --- API & RESULTS ---
         async function fetchCandidates() {
+            errorBox.style.display = "none";
+            
             const prompt = `
-            Return a JSON Array of up to 45 English words.
-            Rules: Length ${wordLength}, Starts with ${firstShape}, Ends with ${lastShape}.
-            Shape Guide:
+            Return a JSON Array of up to 50 English words.
+            Constraints:
+            - Length: ${wordLength}
+            - First Letter Shape: ${firstShape}
+            - Last Letter Shape: ${lastShape}
+            
+            Shape Definitions:
             - Straight: A, E, F, H, I, K, L, M, N, T, V, W, X, Y, Z
             - Mixed: B, D, G, J, P, Q, R, U
             - Curved: C, O, S
-            Output ONLY JSON. Example: ["WORD1", "WORD2"]
+
+            Strict Output: JSON Array of strings only.
+            Example: ["WORD1", "WORD2"]
             `;
-            
-            // Safety settings to prevent blocks
-            const safetySettings = [
-                { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-            ];
 
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000);
+                const timeoutId = setTimeout(() => controller.abort(), 12000);
 
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
-                        contents: [{ parts: [{ text: prompt }] }],
-                        safetySettings: safetySettings 
-                    }),
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
                     signal: controller.signal
                 });
-                
+
                 clearTimeout(timeoutId);
-                
-                if(!response.ok) throw new Error("API Error");
+
+                if (!response.ok) {
+                    throw new Error(`Server Error: ${response.status}`);
+                }
 
                 const data = await response.json();
-                let rawText = data.candidates[0].content.parts[0].text;
+                
+                // Parse Logic
+                let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!rawText) throw new Error("AI returned empty response");
+
                 rawText = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
                 
                 try {
                     allCandidates = JSON.parse(rawText);
-                } catch {
-                    // Fallback parse
-                    allCandidates = rawText.split(/[\n,]+/).map(w => w.trim().replace(/["\[\]]/g, "")).filter(w => w.length === wordLength);
+                } catch (e) {
+                    // Fallback for messy AI output
+                    allCandidates = rawText.match(/[a-zA-Z]+/g).filter(w => w.length === wordLength);
                 }
 
                 allCandidates = allCandidates.map(w => w.toUpperCase()).sort();
                 
-                // Show UI
-                filterBarContainer.style.display = "flex";
-                statusText.innerText = "Results Found";
-                helperText.innerText = "Tap a filter to narrow down";
+                // Show Grid
+                gridArea.classList.add("visible");
+                setupFilterBar();
                 renderResults(allCandidates);
+                statusText.innerText = "RESULTS";
+                helperText.innerText = "Tap letters below to filter";
 
             } catch (error) {
                 console.error(error);
-                resultWordEl.innerText = "RETRY";
-                errorToast.style.display = "block";
-                setTimeout(() => errorToast.style.display = "none", 3000);
+                resultWordEl.innerText = "ERROR";
+                errorBox.style.display = "block";
+                errorBox.innerText = `Details: ${error.message}. Check API Key.`;
+                controls.classList.add("active"); // Bring controls back so they don't get stuck
             }
         }
 
-        // --- RENDER & FILTER ---
-        function toggleFilter(letter, keyElement) {
-            if (allCandidates.length === 0) return;
-
-            buzz(10);
-            if (activeFilters.has(letter)) {
-                activeFilters.delete(letter);
-                keyElement.classList.remove("active");
-            } else {
-                activeFilters.add(letter);
-                keyElement.classList.add("active");
-            }
-            applyFilters();
+        // --- FILTERING ---
+        function setupFilterBar() {
+            filterWrapper.style.display = "flex";
+            filterWrapper.innerHTML = "";
+            const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+            
+            alphabet.forEach(letter => {
+                const key = document.createElement("div");
+                key.className = "letter-key";
+                key.innerText = letter;
+                key.onclick = () => {
+                    buzz(10);
+                    if (activeFilters.has(letter)) {
+                        activeFilters.delete(letter);
+                        key.classList.remove("active");
+                    } else {
+                        activeFilters.add(letter);
+                        key.classList.add("active");
+                    }
+                    applyFilters();
+                };
+                filterWrapper.appendChild(key);
+            });
         }
 
         function applyFilters() {
             const filtered = allCandidates.filter(word => {
-                for (let filterChar of activeFilters) {
-                    if (!word.includes(filterChar)) return false;
+                for (let char of activeFilters) {
+                    if (!word.includes(char)) return false;
                 }
                 return true;
             });
@@ -473,11 +504,9 @@
                 return;
             }
 
-            // Update main display
-            resultWordEl.style.fontSize = "3.5rem";
+            resultWordEl.style.fontSize = "3rem";
             resultWordEl.innerText = words[0];
 
-            // Populate Grid
             words.forEach(word => {
                 const btn = document.createElement("div");
                 btn.className = "candidate-btn";
@@ -490,33 +519,25 @@
             });
         }
 
-        // --- RESET ---
         function resetApp() {
-            mode = "LENGTH";
+            mode = "COUNT";
             wordLength = 0;
-            firstShape = "";
-            lastShape = "";
             allCandidates = [];
             activeFilters.clear();
-
+            
+            tapSurface.classList.remove("hidden");
+            controls.classList.remove("active");
+            gridArea.classList.remove("visible");
+            filterWrapper.style.display = "none";
+            errorBox.style.display = "none";
+            
+            resultWordEl.innerText = "0";
+            resultWordEl.style.fontSize = "3rem";
+            helperText.innerText = "Tap the large button below to count";
+            statusText.innerText = "MODE: COUNT";
+            
             buzz(30);
-            
-            // UI Reset
-            resultWordEl.style.fontSize = "3.5rem";
-            resultWordEl.innerText = "";
-            candidatesContainer.innerHTML = "";
-            filterBarContainer.style.display = "none";
-            helperText.innerText = "Tap inputs to begin";
-            statusText.innerText = "System Ready";
-            
-            document.querySelectorAll('.letter-key').forEach(k => k.classList.remove('active'));
         }
-
-        // Listeners
-        document.getElementById('btn-left').addEventListener('click', () => handleInput('left'));
-        document.getElementById('btn-mid').addEventListener('click', () => handleInput('mid'));
-        document.getElementById('btn-right').addEventListener('click', () => handleInput('right'));
-
     </script>
 </body>
 </html>

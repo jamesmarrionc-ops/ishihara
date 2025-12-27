@@ -1,202 +1,217 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>System</title>
+    <title>Architect Printer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
     <style>
-        /* MENTALIST DARK MODE */
-        body {
-            background-color: #000;
-            color: #444;
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            overflow: hidden; /* Prevent scrolling */
-        }
-
-        #container {
-            width: 85%;
-            max-width: 400px;
-            text-align: center;
-        }
-
-        /* Stealth Input */
-        input {
-            background: #0a0a0a;
-            border: 1px solid #222;
-            color: #eee;
-            padding: 20px;
-            width: 100%;
-            box-sizing: border-box; 
-            font-size: 20px;
-            text-align: center;
-            border-radius: 8px;
-            outline: none;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        input:focus {
-            border-color: #444;
-        }
-
-        /* Hidden/Ghost Button */
-        button {
-            margin-top: 20px;
-            background: transparent;
-            color: #333;
-            border: 1px solid #111;
-            padding: 10px 30px;
-            cursor: pointer;
-            font-size: 14px;
-            border-radius: 5px;
-            transition: color 0.3s;
+        body { background-color: #000; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; display: flex; flex-direction: column; height: 90vh; justify-content: center; }
+        
+        .btn {
+            display: block; width: 100%; padding: 30px; margin: 15px 0;
+            font-size: 20px; font-weight: bold; border-radius: 16px; border: none;
+            cursor: pointer; text-transform: uppercase; transition: all 0.2s;
         }
         
-        button:active {
-            color: #fff;
-            border-color: #333;
-        }
+        /* STATE STYLES */
+        .btn-connect { background: #0A84FF; color: white; box-shadow: 0 0 15px #0A84FF; }
+        .btn-print   { background: #30D158; color: black; box-shadow: 0 0 20px #30D158; transform: scale(1.05); }
+        .btn-disabled { background: #333; color: #777; box-shadow: none; pointer-events: none; }
 
-        /* Result List */
-        #result-area {
-            margin-top: 40px;
-            text-align: center;
-            max-height: 50vh;
-            overflow-y: auto;
-        }
-
-        .word-item {
-            color: #888;
-            padding: 12px;
-            font-size: 24px;
-            letter-spacing: 1px;
-            cursor: pointer;
-            border-bottom: 1px solid #111;
-        }
-
-        .word-item:hover {
-            color: #fff;
-        }
-
-        .error-log {
-            color: #300;
-            font-size: 10px;
-            margin-top: 20px;
-        }
+        #status { margin-top: 15px; color: #888; font-size: 14px; font-family: monospace; }
+        #preview { width: 180px; border: 2px solid #333; margin: 20px auto; display: none; filter: grayscale(100%) contrast(1.2); border-radius: 8px; }
+        
+        .printer-id { color: #555; font-size: 10px; margin-top: 50px; }
     </style>
 </head>
 <body>
 
-<div id="container">
-    <input type="text" id="inputData" placeholder="..." autocomplete="off">
-    <button id="procBtn" onclick="fetchWords()">ACQUIRE</button>
+    <button id="actionBtn" class="btn btn-connect" onclick="handleAction()">
+        🔌 FIND PERIPAGE+AF46
+    </button>
     
-    <div id="result-area"></div>
-    <div id="error-log" class="error-log"></div>
-</div>
-
-<script>
-    // --- CONFIGURATION ---
-    // PASTE YOUR NEW KEY HERE (Keep the quotes!)
-    const API_KEY = 'YOUR_NEW_GOOGLE_API_KEY_HERE'; 
+    <img id="preview" alt="Preview">
+    <div id="status">Waiting for Architect...</div>
     
-    // Using the standard Flash model for speed
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+    <div class="printer-id">LOCKED TO: PeriPage+AF46</div>
 
-    async function fetchWords() {
-        const input = document.getElementById('inputData').value;
-        const resultArea = document.getElementById('result-area');
-        const errorLog = document.getElementById('error-log');
-        
-        if(!input) return;
+    <canvas id="processCanvas" style="display:none;"></canvas>
 
-        // Visual feedback
-        resultArea.innerHTML = '<div style="color:#222; font-size:14px;">CALCULATING...</div>';
-        errorLog.innerText = '';
+    <script>
+        // --- YOUR SPECIFIC PRINTER ---
+        const TARGET_DEVICE_NAME = "PeriPage+AF46"; 
 
-        // The Prompt ensures pure JSON output
-        const promptText = `
-            Task: Anagram/Word completion.
-            Input: "${input}"
+        // --- CONFIG ---
+        const PRINTER_WIDTH = 384; 
+        const CHUNK_SIZE = 100;
+        let device, characteristic;
+        let pendingImageData = null;
+
+        // Standard UUIDs
+        const serviceUuid = '000018f0-0000-1000-8000-00805f9b34fb';
+        const charUuid = '00002af1-0000-1000-8000-00805f9b34fb';
+
+        // 1. ON LOAD: CATCH THE PHOTO
+        window.onload = function() {
+            const params = new URLSearchParams(window.location.search);
+            const rawData = params.get('img'); 
             
-            Strict Rules:
-            1. Return ONLY a JSON array of strings (e.g. ["WORD1", "WORD2"]).
-            2. No other text. No markdown blocks.
-            3. If user gives scrambled letters, find the word.
-            4. If user gives constraints (starts with...), find the word.
-        `;
-
-        const payload = {
-            contents: [{
-                parts: [{ text: promptText }]
-            }]
+            if (rawData) {
+                const imgSrc = "data:image/jpeg;base64," + rawData.replace(/ /g, "+");
+                const img = new Image();
+                img.onload = function() {
+                    pendingImageData = img;
+                    // Show Preview
+                    const p = document.getElementById('preview');
+                    p.src = imgSrc;
+                    p.style.display = "block";
+                    updateStatus("Photo Loaded!");
+                };
+                img.src = imgSrc;
+            }
         };
 
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+        // 2. INTELLIGENT BUTTON
+        async function handleAction() {
+            const btn = document.getElementById('actionBtn');
+            
+            // If not connected, Connect.
+            if (!device) {
+                await connectBluetooth();
+            } 
+            // If connected AND we have a photo, Print.
+            else if (pendingImageData) {
+                processAndPrint(pendingImageData);
+            }
+            // If connected but NO photo, just wait.
+            else {
+                updateStatus("Connected! Send photo via Shortcut.");
+            }
+        }
 
-            const data = await response.json();
+        async function connectBluetooth() {
+            try {
+                updateStatus("Searching for YOUR printer...");
+                
+                // FILTER: ONLY SHOW PERIPAGE+AF46
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: TARGET_DEVICE_NAME }],
+                    optionalServices: [serviceUuid]
+                });
 
-            // PARSE GEMINI RESPONSE STRUCTURE
-            // Gemini structure: data.candidates[0].content.parts[0].text
-            if (!data.candidates || data.candidates.length === 0) {
-                throw new Error("No candidates returned");
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService(serviceUuid);
+                characteristic = await service.getCharacteristic(charUuid);
+                
+                // Success
+                updateStatus("Connected to " + TARGET_DEVICE_NAME);
+                
+                if (pendingImageData) {
+                    setButtonState("print");
+                } else {
+                    document.getElementById('actionBtn').innerText = "✅ CONNECTED";
+                    document.getElementById('actionBtn').classList.remove('btn-connect');
+                    document.getElementById('actionBtn').style.background = "#333";
+                }
+
+                // Handle Disconnect
+                device.addEventListener('gattserverdisconnected', () => {
+                    updateStatus("Disconnected.");
+                    device = null;
+                    setButtonState("connect");
+                });
+
+            } catch (error) {
+                updateStatus("Connect Failed: " + error);
+            }
+        }
+
+        function setButtonState(state) {
+            const btn = document.getElementById('actionBtn');
+            if (state === "print") {
+                btn.innerText = "🖨️ PRINT NOW";
+                btn.className = "btn btn-print";
+            } else {
+                btn.innerText = "🔌 FIND PERIPAGE+AF46";
+                btn.className = "btn btn-connect";
+            }
+        }
+
+        function updateStatus(msg) {
+            document.getElementById('status').innerText = msg;
+        }
+
+        // --- PRINTING LOGIC (Optimized) ---
+        function processAndPrint(img) {
+            updateStatus("Rendering...");
+            const canvas = document.getElementById('processCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Resize
+            const scale = PRINTER_WIDTH / img.width;
+            const height = Math.floor(img.height * scale);
+            canvas.width = PRINTER_WIDTH;
+            canvas.height = height;
+            
+            // Draw & Get Pixels
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, PRINTER_WIDTH, height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            // Dither (Black/White)
+            for (let i = 0; i < data.length; i += 4) {
+                const avg = (data[i] + data[i+1] + data[i+2]) / 3;
+                data[i] = data[i+1] = data[i+2] = avg < 128 ? 0 : 255;
+            }
+            
+            printData(data, PRINTER_WIDTH, height);
+        }
+
+        async function printData(pixels, width, height) {
+            updateStatus("Printing...");
+            const rowBytes = width / 8;
+            const bitBuffer = new Uint8Array(rowBytes * height);
+
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const i = (y * width + x) * 4;
+                    if (pixels[i] === 0) { 
+                        const bytePos = (y * rowBytes) + Math.floor(x / 8);
+                        bitBuffer[bytePos] |= (1 << (7 - (x % 8)));
+                    }
+                }
             }
 
-            let rawText = data.candidates[0].content.parts[0].text;
-            
-            // Clean markdown if Gemini adds it (```json ... ```)
-            rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-            
-            const wordList = JSON.parse(rawText);
-
-            // RENDER
-            resultArea.innerHTML = ''; 
-            
-            if (wordList.length === 0) {
-                resultArea.innerHTML = '<div style="color:#333">NO SIGNAL</div>';
-                return;
+            const chunks = Math.ceil(height / CHUNK_SIZE);
+            for (let c = 0; c < chunks; c++) {
+                const start = c * CHUNK_SIZE;
+                const end = Math.min((c+1)*CHUNK_SIZE, height);
+                const h = end - start;
+                
+                const header = new Uint8Array([0x1D, 0x76, 0x30, 0x00, rowBytes, 0x00, h & 0xFF, (h >> 8) & 0xFF]);
+                const body = bitBuffer.slice(start * rowBytes, end * rowBytes);
+                const packet = new Uint8Array(header.length + body.length);
+                packet.set(header);
+                packet.set(body, header.length);
+                
+                await characteristic.writeValue(packet);
+                await new Promise(r => setTimeout(r, 20)); // Fast speed
             }
-
-            wordList.forEach(word => {
-                const div = document.createElement('div');
-                div.className = 'word-item';
-                div.innerText = word;
-                
-                // Click to "select" (Visual Force)
-                div.onclick = () => {
-                    div.style.color = "#fff";
-                    div.style.fontWeight = "bold";
-                    div.style.textShadow = "0 0 10px #fff";
-                };
-                
-                resultArea.appendChild(div);
-            });
-
-        } catch (error) {
-            console.error(error);
-            resultArea.innerHTML = '';
-            errorLog.innerText = "CONNECTION ERROR";
+            
+            // Feed & Reset
+            await characteristic.writeValue(new Uint8Array([0x1B, 0x4A, 150])); 
+            updateStatus("PRINT COMPLETE");
+            
+            // Optional: Reset UI for next trick
+            setTimeout(() => {
+                pendingImageData = null;
+                document.getElementById('preview').style.display = 'none';
+                document.getElementById('actionBtn').innerText = "✅ READY FOR NEXT";
+                document.getElementById('actionBtn').className = "btn btn-disabled";
+                document.getElementById('actionBtn').style.background = "#222";
+            }, 3000);
         }
-    }
-
-    // Allow "Enter" key to trigger
-    document.getElementById("inputData").addEventListener("keypress", function(event) {
-        if (event.key === "Enter") {
-            fetchWords();
-        }
-    });
-</script>
-
+    </script>
 </body>
 </html>

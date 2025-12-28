@@ -4,12 +4,14 @@
     <meta charset="UTF-8">
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
+    
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#000000">
     
-    <title>Echo</title>
+    <title>Blackout</title>
     <style>
         /* --- CORE STYLES --- */
         :root { --bg: #000; --text: #fff; }
@@ -50,48 +52,44 @@
         }
         .shape-zone:last-child { border-bottom: none; }
 
-        /* --- STATUS TEXT (Debug Info) --- */
+        /* --- STATUS TEXT --- */
         #status {
-            position: absolute; bottom: 20%; left: 0; width: 100%;
+            position: absolute; bottom: 15%; left: 0; width: 100%;
             text-align: center; color: #333; font-size: 10px; letter-spacing: 1px;
             pointer-events: none; transition: color 0.2s;
-        }
-
-        /* --- LIVE CANDIDATE LIST (The Peek) --- */
-        #candidate-list {
-            position: absolute; bottom: 0; left: 0; width: 100%;
-            height: 15%; /* Bottom 15% */
-            display: flex; align-items: center; justify-content: center;
-            padding: 0 10px;
-            text-align: center;
-            font-size: 14px;
-            font-weight: 600;
-            color: #333; /* Dark Grey: Visible to user, hidden to spectator */
-            font-family: monospace;
-            text-transform: uppercase;
-            z-index: 60;
-            pointer-events: none;
-            white-space: pre-wrap; /* Allows wrapping */
         }
 
         /* --- FILTER LAYER --- */
         #filter-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: transparent; display: none;
+            background: var(--bg); display: none;
             flex-direction: column; align-items: center; justify-content: center;
-            z-index: 15; pointer-events: none; /* Let clicks pass through except gestures */
+            z-index: 15;
         }
         
         #filter-letter {
-            font-size: 6rem; 
+            font-size: 4rem; 
             font-weight: 300; color: #222; margin-bottom: 20px;
             text-align: center;
         }
         
         #filter-instructions {
             display: flex; width: 100%; justify-content: space-between; padding: 0 40px;
-            font-size: 10px; color: #222; text-transform: uppercase; letter-spacing: 2px;
-            position: absolute; top: 50%; transform: translateY(60px);
+            font-size: 10px; color: #111; text-transform: uppercase; letter-spacing: 2px;
+            position: absolute; bottom: 50%; transform: translateY(60px);
+        }
+
+        /* NEW: CANDIDATE LIST AT BOTTOM */
+        #candidate-list {
+            position: absolute; bottom: 40px; left: 0; width: 100%;
+            padding: 0 20px;
+            text-align: center;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #333; /* Dark grey: Visible to you, hard for others */
+            font-family: monospace;
+            text-transform: uppercase;
+            overflow-wrap: break-word;
         }
 
         /* --- REVEAL LAYER --- */
@@ -100,21 +98,21 @@
             background: #000;
             display: none;
             flex-direction: column; align-items: center; justify-content: center;
-            z-index: 70; padding: 20px;
+            z-index: 20; padding: 20px;
         }
 
         #primary-word { 
-            font-size: 3rem; font-weight: 300; color: #ccc;
-            text-align: center; letter-spacing: 4px; text-transform: uppercase;
+            font-size: 1.2rem; font-weight: 400; color: #333;
+            text-align: center; letter-spacing: 1px; text-transform: uppercase;
         }
         
         #alt-words { 
-            font-size: 0.8rem; color: #444; text-align: center; margin-top: 20px;
+            font-size: 0.7rem; color: #111; text-align: center; margin-top: 20px;
         }
         
         #reset-zone {
             position: absolute; bottom: 0; left: 0; width: 100%; height: 15%;
-            background: transparent; z-index: 80;
+            background: transparent; z-index: 30;
         }
     </style>
 </head>
@@ -128,20 +126,19 @@
         <div class="shape-zone" id="bot-zone" data-shape="M">MIXED</div>
     </div>
 
-    <div id="candidate-list">...</div> 
-
     <div id="filter-layer">
         <div id="filter-letter">?</div>
         <div id="filter-instructions">
             <span>&lt; No</span>
             <span>Yes &gt;</span>
         </div>
+        <div id="candidate-list"></div> 
     </div>
 
     <div id="status">System Ready</div>
 
     <div id="reveal-layer">
-        <div id="primary-word"></div>
+        <div id="primary-word">...</div>
         <div id="alt-words"></div>
         <div id="reset-zone"></div>
     </div>
@@ -151,7 +148,7 @@
 
     // --- CONFIGURATION ---
     const CONFIG = {
-        minLen: 3,      
+        minLen: 6,      
         maxLen: 14,
         tapTime: 2500,
         dictUrl: 'https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt'
@@ -170,6 +167,7 @@
     DESCRIPTION IMAGINATION INFORMATION EDUCATION DEVELOPMENT RELATIONSHIP ORGANIZATION INTERNATIONAL ENVIRONMENTAL COMMUNICATION REPRESENTATIVE ADMINISTRATION RESPONSIBILITY
     DIRECTOR BEHAVIOR DISASTER DISORDER REGISTER RECEIVER DAUGHTER DISTANCE DISTRICT DELIVERY DECISION DOMESTIC DEADLINE DOCTRINE DATABASE DAYLIGHT
     PEOPLE FAMILY MOTHER FATHER FRIEND PERSON GROWTH HEALTH SYSTEM OFFICE RESULT CHANGE ANSWER FUTURE ACTION EFFECT PERIOD LETTER MOMENT SECOND LITTLE REASON LESSON RECORD PUBLIC MATTER CENTER COUPLE MEMBER GENERAL SPIRIT CHANCE DOCTOR ENERGY INCOME DEGREE DESIGN AMOUNT GARDEN TRAVEL WINDOW BOTTLE SCREEN FOREST STREET SOCCER TENNIS BASKET POTATO CARROT PENCIL POLICE MEMORY CAMERA JACKET GUITAR PLANET SERVER CLIENT ACCESS IMPORT EXPORT STATUS UPDATE SEARCH ONLINE REMOVE DELETE CREATE SUBMIT CANCEL SELECT OPTION FOLLOW REVIEW WRITER ARTIST PLAYER WORKER LEADER SCHOOL REPORT MARKET CREDIT CORNER FINGER GROUND HEAVEN ISLAND NUMBER POCKET SISTER WONDER CIRCLE SQUARE SHAPES PARENT DOLLAR WEIGHT HEIGHT LENGTH VOLUME OUTPUT INPUTS CODING SCRIPT ENGINE SWITCH BRIDGE CASTLE PALACE MUSEUM TEMPLE CHURCH MOSQUE PRISON GARAGE STUDIO CINEMA THEATER CIRCUS BAKERY BARBER BEAUTY SALON DENTAL CLINIC VALLEY CANYON GALAXY NEBULA COMETS METEOR CRATER ROCKET SENSOR ROBOTS DRONES LASERS PHONES TABLET LAPTOP BUTTON SOCKET CABLES WIRING CARBON OXYGEN HELIUM LIQUID PLASMAS POWER MOTORS BRAKES CLUTCH WHEELS MIRROR BUMPER WIPERS LIGHTS SEATS CARPET FABRIC COTTON VELVET LEATHER CANVAS PLASTIC RUBBER METALS BRONZE NICKEL COBALT MARBLE GRANITE QUARTZ GRAVEL CEMENT BRICKS TIMBER BOARDS PLANKS SHEETS PAPERS CARTON PARCEL PACKET BUCKET BARREL DINNER SUPPER BRUNCH BUFFET PICNIC SNACKS COFFEE SUGARED SPICES PEPPER GARLIC ONIONS CELERY LETTUCE RADISH TURNIP PASTRY DONUTS MUFFIN COOKIE BISCUIT BUTTER CHEESE YOGURT CREAMY FROZEN GELATO SORBET SUNDAE GRAPES APPLES MELONS PAPAYA MANGOE BERRIES LEMONS LIMES
+    INSIGHTS ACCOUNTS SERVICES BUSINESS INDUSTRY SECURITY STRATEGY TRAINING ANALYSIS BENEFITS COMPUTER CONTRACT ELECTION EMPLOYEE EXCHANGE HOSPITAL LANGUAGE LOCATION MAGAZINE MATERIAL MILITARY NATIONAL NORTHERN ORIGINAL PAINTING PHYSICAL POSITIVE PRACTICE PRESSURE PROPERTY QUESTION RELIGIOUS REPUBLIC SOUTHERN SPECIFIC STANDARD STRENGTH TEACHER THOUGHTS WESTERN WHATEVER YOURSELF ACTIVITY ACTUALLY ALTHOUGH AMERICAN ANYTHING ANYWHERE ATTORNEY AUDIENCE BUILDING CAMPAIGN CAPACITY CATHOLIC CERTAINLY CHILDREN CLINICAL CLOTHING COMPLAIN COMPLETE CONSIDER CONSUMER CONTINUE COVERAGE CREATION CRIMINAL CRITICAL CULTURAL CURRENCY CUSTOMER DISCOVER EARNINGS ECONOMIC EIGHTEEN ELECTRIC ELEVATOR EMPHASIS ENTRANCE ENVELOPE EVIDENCE EXERCISE EXISTING EXTERNAL FAMILIAR FAVORITE FOOTBALL FORECAST FOREVER FORMERLY FOURTEEN FREQUENT FRIGHTEN FUNCTION FURNITURE GAMBLING GATHERING GOODBYE GRADUATE GRANDSON GREATEST HANDSOME HAPPENED HAPPINESS HEADLINE HEADQUARTERS HERSELF HIGHWAY HISTORIC HOLDING HOMEMADE HOMETOWN HONGKONG HOPEFULLY HORRIBLE HOWEVER HUNDRED HUSBAND IDENTITY ILLEGAL ILLNESS ILLUSION INNOCENT INSPIRED INSTANCE INTERNAL INTERNET INVASION INVESTOR INVOLVED ISOLATED JUDGMENT KEYBOARD KITCHEN LANDLORD LAUGHTER LAWNMOWER LIFETIME LIGHTING LIMITATION LUNCHEON MAINLAND MAJORITY MARRIAGE MATTRESS MEASURES MEDIEVAL MEMORIAL MERCHANT MIDNIGHT MINISTER MINISTRY MINORITY MISERY MISTRESS MODERATE MONITORS MOUNTAIN MOVEMENT MUSICAL MUSICIAN NEGATIVE NEIGHBOR NINETEEN NOTEBOOK NUMEROUS OBJECTIVE OBSERVER OCCASION OFFICIAL OKLAHOMA OPERATION OPERATOR OPINION OPPONENT OPPOSITE ORDINARY ORGANIC OVERCOME OVERHEAD PARALLEL PARENTAL PASSENGER PATIENCE PAVEMENT PAYMENT PENALTY PERSONAL PICTURES PIPEWORK PLATFORM PLEASANT PLEASURE PLENTIFUL PORTRAIT POSSIBLE POTATOES POWERFUL PRECIOUS PREGNANT PREMIER PRESENCE PRESERVE PREVIOUS PRINCESS PRINTING PRIORITY PRISONER PROBABLY PRODUCER PROFOUND PROGRESS PROPOSAL PROSPECT PROVIDER PROVINCE PULLOVER PURCHASE PURELY PURPOSE QUANTITY QUARTER QUOTIENT RAILING RAILWAY REACTION REALIZE RECENTLY RECOVERY REGIONAL RELATION RELATIVE RELEASE RELIGION REMEMBER REMINDER REMOVAL REPEATED REQUEST RESERVED RESIDENT RESISTOR RESOURCE RESPECT RESPOND RETAINED REVEALED REVISION RHYTHMIC RIGHTEOUS ROLLOVER ROMANTIC ROTATION ROUGHLY ROUTINE ROYALTY RUBBISH RUGGED SACRED SADNESS SAFETY SAILING SANDWICH SATISFY SCENERY SCHEDULE SCHOLAR SCIENCE SCISSORS SCRAMBLE SCRATCH SCREENING SCULPTOR SELECTION SEMINAR SENATOR SEPARATE SEQUENCE SERGEANT SERIES SERIOUS SERVANT SERVICE SESSION SETTING SEVERAL SHADOW SHAMPOO SHELTER SHERIFF SHINING SHIPMENT SHIPPING SHIRT SHOCKING SHOOTING SHOPPING SHORTAGE SHOULDER SHOWER SIDEWALK SIDEWAYS SIGNATURE SILENCE SILICON SIMILAR SIMPLE SINGING SINGLE SISTER SITUATION SKELETON SKILLED SKIPPING SLIGHTLY SLIPPERY SMOKING SMOOTH SNOWING SOCIAL SOCIETY SOFTWARE SOLDIER SOLICIT SOLID SOLUTION SOMEBODY SOMEHOW SOMETIME SOMEWHAT SPEAKER SPECIAL SPECIFIC SPECTRUM SPINNING SPLENDID SPOKESMAN SPONSOR SPORTING SPOTLIGHT SPREAD SQUARED STADIUM STAFFING STAGE STAIRS STANDARD STANDING STARING STARTING STARVATION STATION STATUE STEALING STEAMER STEERING STEPPING STICKING STIFF STOMACH STOPPING STORAGE STOREY STORM STRAIGHT STRANGE STREAM STRENGTH STRETCH STRIKE STRING STRIP STRONG STRUCK STRUCTURE STRUGGLE STUDENT STUDY STUFF STUPID STURDY STYLE SUBJECT SUBSTANCE SUCCESS SUDDEN SUFFER SUGAR SUGGEST SUICIDE SUMMIT SUPPLY SUPPORT SUPPOSE SUPREME SURELY SURFACE SURGEON SURGERY SURPRISE SURROUND SURVEY SURVIVE SUSPECT SUSPEND SWALLOW SWEAR SWEAT SWEEP SWEET SWIM SWING SWITCH SWORD SYMBOL SYMPATHY TABLE TACKLE TACTIC TAILOR TAKING TALENT TALK TALL TANK TAPE TARGET TASK TASTE TAXI TEACH TEAM TEAR TECHNICAL TEENAGER TELEPHONE TELESCOPE TELEVISION TELLING TEMPER TEMPORARY TENDENCY TENSION TERRIBLE TERRITORY TERROR TERRY TEST TEXT THANK THEME THEORY THERAPY THEREFORE THICK THIEF THIGH THIN THING THINK THIRST THIRTY THOMAS THOUGH THREAD THREAT THROAT THROUGH THROW THUMB THUNDER TICKET TIGER TIGHT TILE TILL TIME TIMING TISSUE TITLE TOBACCO TODAY TOGETHER TOILET TOLERANCE TOMORROW TONE TONGUE TONIGHT TONS TOOTH TOPIC TORCH TOTAL TOUCH TOUGH TOUR TOURIST TOWARD TOWEL TOWER TOWN TOY TRACK TRACTOR TRADE TRAFFIC TRAGEDY TRAIL TRAIN TRAITOR TRANSFER TRANSPORT TRAP TRAY TREASURE TREAT TREATY TREE TREND TRIAL TRIBE TRICK TRIP TRIUMPH TROOP TROUBLE TROUSERS TRUCK TRUMPET TRUNK TRUST TRUTH TRYING TUBE TUESDAY TUNE TUNNEL TURKEY TURN TWELVE TWENTY TWICE TWIN TWIST TYPE TYPICAL UGLY ULTIMATE UMBRELLA UNABLE UNCLE UNCONSCIOUS UNDER UNDERTAKE UNEMPLOYED UNFORTUNATE UNHAPPY UNIFORM UNION UNIQUE UNIT UNITED UNIVERSE UNIVERSITY UNKNOWN UNLESS UNLIKE UNLIKELY UNTIL UNUSUAL UPPER UPSET UPSTAIRS UPWARD URBAN URGENT USAGE USEFUL USER USUAL UTILITY VACUUM VAGUE VALUABLE VALUE VALVE VARIATION VARIETY VARIOUS VARY VAST VEGETABLE VEHICLE VENTURE VERSION VERTICAL VERY VESSEL VETERAN VIA VICTIM VICTORY VIDEO VIEW VILLAGE VIOLENCE VIOLENT VIRTUAL VIRUS VISIBLE VISION VISIT VISITOR VISUAL VITAL VOICE VOLUNTARY VOTE VULNERABLE WAGE WAGON WAIST WAIT WAKE WALK WALL WANDER WANT WAR WARM WARN WASH WASTE WATCH WATER WAVE WAX WAY WEAK WEALTH WEAPON WEAR WEATHER WEAVE WEB WEDDING WEED WEEK WEEKEND WEIGH WELCOME WELFARE WELL WEST WET WHALE WHAT WHEAT WHEEL WHEN WHERE WHETHER WHICH WHILE WHISPER WHISTLE WHITE WHO WHOLE WHOM WHOSE WHY WICKED WIDE WIDOW WIDTH WIFE WILD WILL WIN WIND WINE WING WINNER WIRE WISDOM WISE WISH WITH WITHDRAW WITHIN WITHOUT WITNESS WOLF WOMAN WOOD WOOL WORD WORK WORKING WORLD WORRY WORSHIP WORTH WOULD WOUND WRAP WRIST WRITE WRITING WRONG YARD YEAR YESTERDAY YIELD YOUNG YOUR YOUTH ZERO ZONE ZOOLOGY
     `;
 
     // --- APP VARIABLES ---
@@ -182,7 +180,7 @@
     let activeCandidates = [];
     let currentFilterLetter = '';
     let askedLetters = [];
-    let wakeLock = null;
+    let wakeLock = null; // To keep screen awake
 
     const status = document.getElementById('status');
     const dot = document.getElementById('dict-dot');
@@ -194,6 +192,7 @@
 
     // --- INITIALIZATION ---
     async function init() {
+        // 1. Load Words
         parseWords(CORE_WORDS, priorityDict);
         try {
             const res = await fetch(CONFIG.dictUrl);
@@ -204,11 +203,24 @@
         } catch (e) {
             dot.style.backgroundColor = "#ffa500"; 
         }
+
+        // 2. Request Wake Lock (Keep Screen On)
         requestWakeLock();
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        });
     }
 
     async function requestWakeLock() {
-        try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+        try {
+            if ('wakeLock' in navigator) {
+                wakeLock = await navigator.wakeLock.request('screen');
+            }
+        } catch (err) {
+            console.log('Wake Lock Error:', err);
+        }
     }
 
     function parseWords(text, targetDict) {
@@ -226,63 +238,24 @@
             
             const key = `${len}-${v1}-${v2}-${s1}-${s2}`;
             if (!targetDict[key]) targetDict[key] = [];
-            if (!targetDict[key].includes(word) && targetDict[key].length < 30) targetDict[key].push(word);
-        });
-    }
-
-    // --- LIVE LOOKUP (THE PEEK) ---
-    function updateLivePeek() {
-        // Collect all matches based on current knowns
-        let matches = [];
-        
-        // Scan keys to find partial matches
-        // Dictionary Key Format: LEN-V1-V2-S1-S2
-        
-        let allKeys = Object.keys(priorityDict).concat(Object.keys(backupDict));
-        // Remove duplicates
-        allKeys = [...new Set(allKeys)];
-
-        allKeys.forEach(key => {
-            const parts = key.split('-');
-            const kLen = parseInt(parts[0]);
-            const kV1 = parseInt(parts[1]);
-            const kV2 = parseInt(parts[2]);
-            const kS1 = parts[3];
-            const kS2 = parts[4];
-
-            let match = true;
-            if (phase >= 2 && inputs.len !== 0 && kLen !== inputs.len) match = false;
-            if (phase >= 3 && inputs.v1 !== 0 && kV1 !== inputs.v1) match = false;
-            if (phase >= 4 && inputs.v2 !== 0 && kV2 !== inputs.v2) match = false;
-            if (phase >= 5 && inputs.s1 !== '' && kS1 !== inputs.s1) match = false;
-            if (phase >= 6 && inputs.s2 !== '' && kS2 !== inputs.s2) match = false;
-
-            if (match) {
-                if (priorityDict[key]) matches.push(...priorityDict[key]);
-                if (backupDict[key]) matches.push(...backupDict[key]);
+            
+            if (!targetDict[key].includes(word)) {
+                if(targetDict[key].length < 30) {
+                    targetDict[key].push(word);
+                }
             }
         });
-
-        // Dedupe
-        activeCandidates = [...new Set(matches)];
-        
-        // Update UI
-        if (activeCandidates.length === 0) {
-            candidateList.innerText = phase > 1 ? "(0 Matches)" : "...";
-        } else if (activeCandidates.length > 8) {
-            candidateList.innerText = activeCandidates.slice(0, 8).join(" ") + " ...";
-        } else {
-            candidateList.innerText = activeCandidates.join("  ");
-        }
     }
 
-    // --- INPUT ROUTER ---
+    // --- MAIN INPUT ROUTER & SWIPES ---
     let touchStartX = 0;
     let touchStartY = 0;
 
     document.addEventListener('touchstart', (e) => {
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
+
+        // Wake lock refresh on touch
         if (!wakeLock) requestWakeLock();
 
         if (e.target.id === 'reset-zone') {
@@ -291,7 +264,6 @@
              return;
         }
 
-        // Tapping (Phases 1-3)
         if (phase <= 3 && e.target.closest('#input-layer')) {
              if (navigator.vibrate) navigator.vibrate(10);
              handleTap();
@@ -304,18 +276,22 @@
         let diffX = touchEndX - touchStartX;
         let diffY = touchEndY - touchStartY;
 
-        // Swipe Down (Undo)
-        if (diffY > 60 && Math.abs(diffX) < 40) { undoPhase(); return; }
+        // --- SWIPE DOWN TO UNDO ---
+        if (diffY > 60 && Math.abs(diffX) < 40) {
+            undoPhase();
+            return; 
+        }
 
-        // Filter Swipe (Left/Right)
+        // --- FILTER PHASE SWIPES (Left/Right) ---
         if (phase === 6) {
             if (Math.abs(diffX) > 40) {
-                processFilter(diffX > 0);
+                if (diffX > 0) processFilter(true); // Right (Yes)
+                else processFilter(false); // Left (No)
             }
             return;
         }
 
-        // Shape Selection
+        // --- SHAPE SELECTION ---
         if ((phase === 4 || phase === 5) && Math.abs(diffX) < 20 && Math.abs(diffY) < 20) {
             if (e.target.classList.contains('shape-zone')) {
                 if (navigator.vibrate) navigator.vibrate(10);
@@ -323,49 +299,37 @@
             }
         }
         
-        // V2 Skip Swipe
+        // --- V2 SKIP SWIPE ---
         if (phase === 3 && (touchStartX - touchEndX > 80)) {
             clearTimeout(tapTimer);
             inputs.v2 = 0; phase = 4;
             if (navigator.vibrate) navigator.vibrate([30, 30]);
-            status.innerText = "Shape Mode";
+            status.innerText = "Skipped V2. Shape Mode.";
             showZones();
-            updateLivePeek(); // Refresh list on skip
         }
     });
 
-    // --- UNDO ---
+    // --- UNDO LOGIC ---
     function undoPhase() {
         if (phase <= 1) return;
         if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
         phase--;
         clearTimeout(tapTimer);
         tapCount = 0;
-        
-        // Reset Logic
-        if (phase === 1) inputs.len = 0;
-        if (phase === 2) inputs.v1 = 0;
-        if (phase === 3) inputs.v2 = 0;
-        if (phase === 4) inputs.s1 = '';
-        if (phase === 5) inputs.s2 = '';
-
-        // UI Reset
-        status.innerText = "Undo";
         status.style.color = "#888";
-        if (phase < 4) hideZones();
-        else showZones();
-        
-        filterLayer.style.display = 'none';
-        document.getElementById('reveal-layer').style.display = 'none';
-        
-        updateLivePeek(); // Refresh list on undo
+
+        if (phase === 1) { inputs.len = 0; status.innerText = "System Reset: Enter Length"; hideZones(); filterLayer.style.display = 'none'; }
+        else if (phase === 2) { inputs.v1 = 0; status.innerText = "Length Locked. Enter V1."; }
+        else if (phase === 3) { inputs.v2 = 0; status.innerText = "V1 Locked. Enter V2."; hideZones(); }
+        else if (phase === 4) { inputs.s1 = ''; status.innerText = "V2 Locked. Shape 1."; showZones(); filterLayer.style.display = 'none'; }
+        else if (phase === 5) { inputs.s2 = ''; status.innerText = "Shape 1 Locked. Shape 2."; showZones(); filterLayer.style.display = 'none'; document.getElementById('reveal-layer').style.display = 'none'; }
     }
 
     // --- LOGIC ---
     function handleTap() {
         clearTimeout(tapTimer);
         tapCount++;
-        status.innerText = `${tapCount}`;
+        status.innerText = `Count: ${tapCount}`;
         status.style.color = "#fff";
         tapTimer = setTimeout(lockTap, CONFIG.tapTime);
     }
@@ -373,30 +337,43 @@
     function lockTap() {
         if (navigator.vibrate) navigator.vibrate([30, 30]);
 
-        if (phase === 1) { inputs.len = tapCount; status.innerText = "Len Locked"; phase = 2; }
-        else if (phase === 2) { inputs.v1 = tapCount; status.innerText = "V1 Locked"; phase = 3; }
-        else if (phase === 3) { inputs.v2 = tapCount; status.innerText = "First Letter Shape"; phase = 4; showZones(); }
-        
+        if (phase === 1) {
+            inputs.len = tapCount;
+            status.innerText = "Length Locked";
+            phase = 2;
+        } else if (phase === 2) {
+            inputs.v1 = tapCount;
+            status.innerText = "Vowel 1 Locked";
+            phase = 3;
+        } else if (phase === 3) {
+            inputs.v2 = tapCount;
+            status.innerText = "Think of First Letter (Capital)";
+            phase = 4;
+            showZones();
+        }
         tapCount = 0;
         status.style.color = "#555";
-        updateLivePeek(); // Update list immediately
     }
 
     function handleShape(shape) {
         if (phase === 4) {
             inputs.s1 = shape;
-            status.innerText = "Last Letter Shape";
+            status.innerText = "Think of Last Letter (Capital)";
             phase = 5;
-            updateLivePeek();
         } else if (phase === 5) {
             inputs.s2 = shape;
-            updateLivePeek();
-            finalizeInput();
+            prepareReveal();
         }
     }
 
-    function finalizeInput() {
-        // activeCandidates is already populated by updateLivePeek
+    function prepareReveal() {
+        const key = `${inputs.len}-${inputs.v1}-${inputs.v2}-${inputs.s1}-${inputs.s2}`;
+        activeCandidates = [];
+        if (priorityDict[key]) activeCandidates = [...priorityDict[key]];
+        if (backupDict[key]) {
+            backupDict[key].forEach(w => { if (!activeCandidates.includes(w)) activeCandidates.push(w); });
+        }
+
         if (activeCandidates.length <= 1) {
             revealFinal();
         } else {
@@ -409,10 +386,12 @@
         hideZones();
         filterLayer.style.display = 'flex';
         status.innerText = "";
+        updateCandidateList(); // Show initial list
         nextFilterQuestion();
     }
 
     function nextFilterQuestion() {
+        // Calculate best splitting letter
         let charCounts = {};
         activeCandidates.forEach(word => {
             let uniqueChars = [...new Set(word.split(''))];
@@ -437,18 +416,23 @@
     }
 
     function processFilter(isYes) {
+        // 1. FILTER LOGIC
         if (isYes) activeCandidates = activeCandidates.filter(w => w.includes(currentFilterLetter));
         else activeCandidates = activeCandidates.filter(w => !w.includes(currentFilterLetter));
 
-        // Update the Peek List instantly
-        if (activeCandidates.length > 8) {
-            candidateList.innerText = activeCandidates.slice(0, 8).join(" ") + " ...";
-        } else {
-            candidateList.innerText = activeCandidates.join("  ");
-        }
+        // 2. UPDATE LIST INSTANTLY
+        updateCandidateList();
 
+        // 3. CHECK NEXT STEP
         if (activeCandidates.length <= 1) revealFinal();
         else nextFilterQuestion();
+    }
+
+    function updateCandidateList() {
+        // Displays possible words at the bottom. 
+        // We limit to first 6 to prevent screen clutter, or show all if you prefer.
+        // Currently set to show ALL valid candidates separated by spaces.
+        candidateList.innerText = activeCandidates.join("  ");
     }
 
     function revealFinal() {

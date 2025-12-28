@@ -3,20 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Google</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Search</title>
     <style>
-        /* --- CORE STYLES --- */
+        /* --- MODERN RESET & BASE --- */
+        :root {
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #888888;
+            --accent: #333333;
+        }
+
         * { box-sizing: border-box; touch-action: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+        
         body, html {
             margin: 0; padding: 0;
             width: 100%; height: 100%;
-            background-color: #000; /* OLED Black */
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             overflow: hidden;
-            color: #fff;
+            color: var(--text-primary);
+            cursor: default;
         }
 
-        /* --- LAYOUTS --- */
+        /* --- INPUT LAYER --- */
         #input-layer {
             position: absolute; top: 0; left: 0;
             width: 100%; height: 100%;
@@ -24,42 +35,103 @@
             display: flex; flex-direction: column;
         }
 
-        /* The Shape Zones (Top/Mid/Bot) */
+        /* SHAPE ZONES (Minimalist Lines) */
         .shape-zone {
-            flex: 1; /* Split screen in 3 */
-            width: 100%;
-            border-bottom: 1px solid #222;
+            flex: 1; width: 100%;
             display: flex; align-items: center; justify-content: center;
-            font-weight: bold; color: #444; 
-            opacity: 0; /* Invisible start */
-            transition: opacity 0.2s;
-            /* CRITICAL FIX: Ignore clicks on these until needed */
-            pointer-events: none; 
+            font-size: 14px; letter-spacing: 2px;
+            color: var(--text-secondary);
+            opacity: 0; /* Hidden by default */
+            transition: opacity 0.4s ease, background 0.2s;
+            pointer-events: none;
+            border-bottom: 1px solid #111;
+        }
+        
+        /* Last zone no border */
+        .shape-zone:last-child { border-bottom: none; }
+
+        /* --- FEEDBACK STATUS --- */
+        #status {
+            position: absolute; 
+            bottom: 120px; /* High enough to avoid thumbs */
+            left: 0; width: 100%;
+            text-align: center; 
+            color: var(--text-secondary); 
+            font-size: 13px; 
+            font-weight: 400; 
+            letter-spacing: 0.5px;
+            pointer-events: none;
+            transition: color 0.3s ease;
         }
 
-        /* The Reveal Screen */
+        /* --- RESULT LAYER (The Reveal) --- */
         #reveal-layer {
             position: absolute; top: 0; left: 0;
             width: 100%; height: 100%;
-            background: #000;
-            display: none;
+            background: var(--bg-color);
+            display: none; /* Hidden */
             flex-direction: column;
             align-items: center; justify-content: center;
             z-index: 20;
-            padding: 20px;
+            padding: 40px;
+        }
+
+        .label {
+            font-size: 12px; 
+            color: var(--text-secondary); 
+            text-transform: uppercase; 
+            letter-spacing: 2px;
+            margin-bottom: 20px;
         }
 
         #primary-word {
-            font-size: 3.5rem; font-weight: 800; text-transform: uppercase;
-            text-align: center; margin-bottom: 10px; color: #fff;
+            font-size: 3.5rem; 
+            font-weight: 700; 
+            text-transform: uppercase;
+            text-align: center; 
+            color: var(--text-primary); 
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            line-height: 1.1;
         }
-        #alt-words { font-size: 1.1rem; color: #666; text-align: center; max-width: 90%; }
-        
-        #status {
-            position: absolute; bottom: 30px; left: 0; width: 100%;
-            text-align: center; color: #333; font-size: 14px; pointer-events: none;
-            transition: color 0.2s;
+
+        #alt-words { 
+            font-size: 1.1rem; 
+            color: var(--text-secondary); 
+            text-align: center; 
+            max-width: 100%; 
+            line-height: 1.6; 
+            font-weight: 300;
         }
+
+        /* --- MODERN RESET BUTTON --- */
+        #reset-container {
+            position: absolute;
+            bottom: 50px;
+            left: 0; width: 100%;
+            display: flex; justify-content: center;
+        }
+
+        #reset-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 14px 40px;
+            border-radius: 50px; /* Pill shape */
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            color: #fff;
+            text-transform: uppercase;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        #reset-btn:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
     </style>
 </head>
 <body>
@@ -70,128 +142,146 @@
         <div class="shape-zone" id="bot-zone" data-shape="M">MIXED</div>
     </div>
 
-    <div id="status">Loading Database...</div>
+    <div id="status">System Ready</div>
 
     <div id="reveal-layer">
-        <div style="color:#555; margin-bottom:20px;">Top Result</div>
+        <div class="label">Result</div>
         <div id="primary-word">...</div>
         <div id="alt-words"></div>
+
+        <div id="reset-container">
+            <div id="reset-btn">Start Over</div>
+        </div>
     </div>
 
 <script>
     // --- CONFIGURATION ---
-    const TAP_TIMEOUT = 1200; // 1.2 Seconds to wait after tapping
-    const MIN_WORD_LEN = 3;
+    const TAP_TIMEOUT = 2500; // 2.5 Seconds
+    const MIN_WORD_LEN = 6;   // Force 6+ letters for accuracy
+    const MAX_WORD_LEN = 14;
 
-    // --- VARIABLES ---
-    let phase = 1; // 1=Vowel1, 2=Vowel2, 3=Shape1, 4=Shape2
-    let inputs = { v1: 0, v2: 0, s1: '', s2: '' };
+    // --- STATE ---
+    let phase = 1; 
+    let inputs = { len: 0, v1: 0, v2: 0, s1: '', s2: '' };
     let tapCount = 0;
     let tapTimer = null;
     let dictionary = {};
 
-    // --- ELEMENTS ---
+    // --- UI ELEMENTS ---
     const status = document.getElementById('status');
     const zones = document.querySelectorAll('.shape-zone');
-    const inputLayer = document.getElementById('input-layer');
+    const revealLayer = document.getElementById('reveal-layer');
 
-    // --- 1. SETUP & DICTIONARY ---
+    // --- 1. INITIALIZE ---
     async function init() {
+        status.innerText = "Loading Library...";
         try {
-            const res = await fetch('https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-no-swears.txt');
+            // Using 20k word list
+            const res = await fetch('https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-20000-english-no-swears.txt');
             const text = await res.text();
             
+            // Build Dictionary
             text.split('\n').forEach(word => {
-                if(word.length < MIN_WORD_LEN || word.length > 10) return;
-                word = word.toUpperCase();
+                word = word.trim().toUpperCase();
                 
+                // Filter Logic: Must be 6 to 14 letters
+                if(word.length < MIN_WORD_LEN || word.length > MAX_WORD_LEN) return;
+
                 const v = getVowels(word);
                 let v1 = v[0] || 0; 
                 let v2 = v[1] || 0;
 
                 const s1 = getShape(word[0]);
                 const s2 = getShape(word[word.length-1]);
+                const len = word.length;
 
-                const key = `${v1}-${v2}-${s1}-${s2}`;
+                // Key: Len-V1-V2-S1-S2
+                const key = `${len}-${v1}-${v2}-${s1}-${s2}`;
+                
                 if (!dictionary[key]) dictionary[key] = [];
                 if (!dictionary[key].includes(word)) dictionary[key].push(word);
             });
             
-            status.innerText = "Ready. Tap screen for Vowel 1.";
-            status.style.color = "#444";
+            status.innerText = "Ready";
         } catch(e) {
-            status.innerText = "Offline Mode (Dictionary Error)";
+            status.innerText = "Connection Error";
         }
     }
 
-    // --- 2. INPUT HANDLER (THE FIX) ---
-    inputLayer.addEventListener('touchstart', (e) => {
-        // Always vibrate on touch
-        if(navigator.vibrate) navigator.vibrate(20);
+    // --- 2. INPUT ROUTER ---
+    document.getElementById('input-layer').addEventListener('touchstart', (e) => {
+        // Haptic
+        if(navigator.vibrate) navigator.vibrate(15);
 
-        // LOGIC SPLITTER
-        if (phase === 1 || phase === 2) {
-            // PHASE 1 & 2: RHYTHM TAPPING
-            handleTapCount();
-        } 
-        else {
-            // PHASE 3 & 4: ZONE TAPPING
-            // We need to know WHICH zone was hit.
-            // Since pointer-events are auto now, e.target will be the zone.
+        // Logic Split
+        if (phase <= 3) {
+            // Phases 1, 2, 3: Rhythm Tapping
+            handleTap();
+        } else {
+            // Phases 4, 5: Shape Zones
             const target = e.target;
             if(target.classList.contains('shape-zone')) {
                 const shape = target.getAttribute('data-shape');
-                handleShapeInput(shape);
+                handleShape(shape);
             }
         }
     });
 
     // --- 3. RHYTHM LOGIC ---
-    function handleTapCount() {
+    function handleTap() {
         clearTimeout(tapTimer);
         tapCount++;
         
-        // Visual confirmation (Flash text white)
-        status.innerText = `Count: ${tapCount}`;
+        status.innerText = `Count ${tapCount}`;
         status.style.color = "#fff";
         
         tapTimer = setTimeout(() => {
-            lockInCount();
+            lockTap();
         }, TAP_TIMEOUT);
     }
 
-    function lockInCount() {
-        if(navigator.vibrate) navigator.vibrate([40, 40]); // Double buzz = Locked
+    function lockTap() {
+        if(navigator.vibrate) navigator.vibrate([40, 40]); 
 
         if (phase === 1) {
-            inputs.v1 = tapCount;
+            inputs.len = tapCount;
+            // Guard: If they tapped less than 6, warn them (or just proceed)
+            if(inputs.len < 6 && inputs.len > 0) {
+                 status.innerText = `Warning: ${inputs.len} is short`;
+            } else {
+                 status.innerText = `Length Locked`;
+            }
             phase = 2;
-            tapCount = 0;
-            status.innerText = `Locked (${inputs.v1}). Now Vowel 2.`;
-            status.style.color = "#444";
         } 
         else if (phase === 2) {
-            inputs.v2 = tapCount;
+            inputs.v1 = tapCount;
+            status.innerText = `Vowel 1 Locked`;
             phase = 3;
-            tapCount = 0;
-            status.innerText = `Locked (${inputs.v2}). Top=Str, Mid=Crv, Bot=Mix`;
+        }
+        else if (phase === 3) {
+            inputs.v2 = tapCount;
+            status.innerText = `Select First Letter Shape`;
+            phase = 4;
             
-            // CRITICAL: ENABLE ZONES NOW
+            // Show Zones
             zones.forEach(z => {
-                z.style.opacity = 0.2; // Show faint outline
-                z.style.pointerEvents = "auto"; // Make clickable
+                z.style.opacity = 0.3; // Minimal visibility
+                z.style.pointerEvents = "auto";
             });
         }
+        
+        tapCount = 0;
+        status.style.color = "#888";
     }
 
     // --- 4. SHAPE LOGIC ---
-    function handleShapeInput(shape) {
-        if (phase === 3) {
+    function handleShape(shape) {
+        if (phase === 4) {
             inputs.s1 = shape;
-            phase = 4;
-            status.innerText = "Last Letter Shape?";
+            phase = 5;
+            status.innerText = "Select Last Letter Shape";
         } 
-        else if (phase === 4) {
+        else if (phase === 5) {
             inputs.s2 = shape;
             reveal();
         }
@@ -199,58 +289,62 @@
 
     // --- 5. REVEAL LOGIC ---
     function reveal() {
-        const key = `${inputs.v1}-${inputs.v2}-${inputs.s1}-${inputs.s2}`;
+        const key = `${inputs.len}-${inputs.v1}-${inputs.v2}-${inputs.s1}-${inputs.s2}`;
         const matches = dictionary[key];
         
-        const rLayer = document.getElementById('reveal-layer');
         const pWord = document.getElementById('primary-word');
         const aWord = document.getElementById('alt-words');
 
         if (matches && matches.length > 0) {
             pWord.innerText = matches[0];
-            aWord.innerText = matches.length > 1 ? "Also: " + matches.slice(1,8).join(", ") : "Exact Match";
+            
+            if (matches.length > 1) {
+                // Clean list with no bullets
+                aWord.innerText = matches.slice(1,6).join("   ");
+            } else {
+                aWord.innerText = "";
+            }
         } else {
             pWord.innerText = "NO MATCH";
-            aWord.innerText = `Code: ${key}`;
+            aWord.innerText = `Input: ${inputs.len} ${inputs.v1} ${inputs.v2}`;
         }
         
-        rLayer.style.display = 'flex';
-        // Hide zones again
+        revealLayer.style.display = 'flex';
+        
+        // Hide zones
         zones.forEach(z => {
             z.style.opacity = 0;
             z.style.pointerEvents = "none";
         });
     }
 
-    // --- 6. UTILS (SWIPE & RESET) ---
+    // --- 6. GESTURES & RESET ---
     
-    // Swipe Left to SKIP Vowel 2
+    // Swipe Left Skip (Phase 3 only)
     let startX = 0;
     document.addEventListener('touchstart', e => startX = e.touches[0].clientX);
     document.addEventListener('touchend', e => {
         let endX = e.changedTouches[0].clientX;
-        // Only valid if swiping left AND in phase 2
-        if (startX - endX > 80 && phase === 2) {
+        if (startX - endX > 80 && phase === 3) {
             clearTimeout(tapTimer);
-            inputs.v2 = 0; // Set to 0
-            phase = 3;
+            inputs.v2 = 0; 
+            phase = 4;
             if(navigator.vibrate) navigator.vibrate([40, 40]);
-            status.innerText = "Skipped V2. Shape Phase.";
-            
-            // Enable Zones
+            status.innerText = "Skipped. Shape Mode.";
             zones.forEach(z => {
-                z.style.opacity = 0.2;
+                z.style.opacity = 0.3;
                 z.style.pointerEvents = "auto";
             });
         }
     });
 
-    // Reset
-    document.getElementById('reveal-layer').addEventListener('dblclick', () => {
+    // Reset Button
+    document.getElementById('reset-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
         location.reload();
     });
 
-    // Logic Helpers
+    // --- HELPERS ---
     function getShape(char) {
         if (!char) return "S";
         const c = char.toUpperCase();
@@ -265,6 +359,7 @@
         return idx;
     }
 
+    // Run
     init();
 
 </script>

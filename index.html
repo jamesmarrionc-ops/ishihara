@@ -85,17 +85,11 @@
             z-index: 20; padding: 20px;
         }
 
-        /* FAKE CLOCK (Optional - makes it look like Always On Display) */
-        #fake-clock {
-            font-size: 3rem; font-weight: 200; color: #333;
-            margin-bottom: 10px; opacity: 0.8;
-        }
-
         /* THE WORD - Disguised as Date/Notification */
         #primary-word { 
             font-size: 1.2rem; 
             font-weight: 400; 
-            color: #444; /* Dark Grey - Looks like dim standby text */
+            color: #333; /* Dark Grey - Looks like dim standby text */
             text-align: center; 
             letter-spacing: 1px;
             text-transform: uppercase;
@@ -138,7 +132,6 @@
     <div id="status">System Ready</div>
 
     <div id="reveal-layer">
-        <div id="fake-clock">12:00</div>
         <div id="primary-word">...</div>
         <div id="alt-words"></div>
         <div id="reset-zone"></div> </div>
@@ -154,16 +147,6 @@
         tapTime: 2500,
         dictUrl: 'https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt'
     };
-
-    // --- REAL CLOCK SCRIPT ---
-    function updateClock() {
-        const now = new Date();
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        document.getElementById('fake-clock').innerText = `${hours}:${minutes}`;
-        setTimeout(updateClock, 1000);
-    }
-    updateClock();
 
     // --- CORE DICTIONARY (OFFLINE PRIORITY) ---
     const CORE_WORDS = `

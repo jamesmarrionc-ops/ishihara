@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Locked</title>
+    <title>Blackout</title>
     <style>
         /* --- CORE STYLES --- */
         :root { --bg: #000; --text: #fff; }
@@ -53,7 +53,7 @@
             pointer-events: none; transition: color 0.2s;
         }
 
-        /* --- FILTER LAYER --- */
+        /* --- FILTER LAYER (The Flashing Part) --- */
         #filter-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg); display: none;
@@ -62,13 +62,17 @@
         }
         
         #filter-letter {
-            font-size: 2rem; font-weight: 300; color: #222; margin-bottom: 0px;
+            font-size: 4rem; /* Big for single letters */
+            font-weight: 300; color: #222; margin-bottom: 0px;
+            text-align: center;
+            transition: font-size 0.2s ease-out; /* Smooth shrink/grow animation */
         }
         
         #filter-instructions {
             display: flex; width: 100%; justify-content: space-between; padding: 0 40px;
             font-size: 10px; color: #111; text-transform: uppercase; letter-spacing: 2px;
             position: absolute; bottom: 40px;
+            transition: opacity 0.2s;
         }
 
         /* --- REVEAL LAYER --- */
@@ -80,18 +84,15 @@
             z-index: 20; padding: 20px;
         }
 
-        /* THE WORD - Disguised */
         #primary-word { 
             font-size: 1.2rem; font-weight: 400; color: #333;
             text-align: center; letter-spacing: 1px; text-transform: uppercase;
         }
         
-        /* Secondary candidates */
         #alt-words { 
             font-size: 0.7rem; color: #111; text-align: center; margin-top: 20px;
         }
         
-        /* INVISIBLE RESET BUTTON */
         #reset-zone {
             position: absolute; bottom: 0; left: 0; width: 100%; height: 15%;
             background: transparent; z-index: 30;
@@ -135,7 +136,7 @@
         dictUrl: 'https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt'
     };
 
-    // --- CORE DICTIONARY (UPDATED WITH AARDVARK) ---
+    // --- CORE DICTIONARY (INCLUDES ADJECTIVES & ANIMALS) ---
     const CORE_WORDS = `
     JANUARY FEBRUARY MARCH APRIL MAY JUNE JULY AUGUST SEPTEMBER OCTOBER NOVEMBER DECEMBER
     MONDAY TUESDAY WEDNESDAY THURSDAY FRIDAY SATURDAY SUNDAY
@@ -143,6 +144,7 @@
     YELLOW ORANGE PURPLE VIOLET INDIGO SILVER GOLDEN BRONZE COPPER CHROME MAGENTA SCARLET CRIMSON MAROON TURQUOISE EMERALD AQUAMARINE LAVENDER BEIGE BLONDE
     AFGHANISTAN ALBANIA ALGERIA ANDORRA ANGOLA ANTIGUA ARGENTINA ARMENIA AUSTRALIA AUSTRIA AZERBAIJAN BAHAMAS BAHRAIN BANGLADESH BARBADOS BELARUS BELGIUM BELIZE BENIN BHUTAN BOLIVIA BOSNIA BOTSWANA BRAZIL BRUNEI BULGARIA BURKINA BURUNDI CAMBODIA CAMEROON CANADA VERDE CENTRAL CHAD CHILE CHINA COLOMBIA COMOROS CONGO COSTA CROATIA CUBA CYPRUS CZECH DENMARK DJIBOUTI DOMINICA DOMINICAN ECUADOR EGYPT SALVADOR EQUATORIAL ERITREA ESTONIA ESWATINI ETHIOPIA FIJI FINLAND FRANCE GABON GAMBIA GEORGIA GERMANY GHANA GREECE GRENADA GUATEMALA GUINEA GUYANA HAITI HONDURAS HUNGARY ICELAND INDIA INDONESIA IRAN IRAQ IRELAND ISRAEL ITALY JAMAICA JAPAN JORDAN KAZAKHSTAN KENYA KIRIBATI KOREA KUWAIT KYRGYZSTAN LATVIA LEBANON LESOTHO LIBERIA LIBYA LIECHTENSTEIN LITHUANIA LUXEMBOURG MADAGASCAR MALAWI MALAYSIA MALDIVES MALI MALTA MARSHALL MAURITANIA MAURITIUS MEXICO MICRONESIA MOLDOVA MONACO MONGOLIA MONTENEGRO MOROCCO MOZAMBIQUE MYANMAR NAMIBIA NAURU NEPAL NETHERLANDS ZEALAND NICARAGUA NIGER NIGERIA MACEDONIA NORWAY OMAN PAKISTAN PALAU PALESTINE PANAMA PAPUA PARAGUAY PERU PHILIPPINES POLAND PORTUGAL QATAR ROMANIA RUSSIA RWANDA SAINT SAMOA MARINO SAUDI SENEGAL SERBIA SEYCHELLES LEONE SINGAPORE SLOVAKIA SLOVENIA SOLOMON SOMALIA AFRICA SPAIN LANKA SUDAN SURINAME SWEDEN SWITZERLAND SYRIA TAIWAN TAJIKISTAN TANZANIA THAILAND TIMOR TOGO TONGA TRINIDAD TUNISIA TURKEY TURKMENISTAN TUVALU UGANDA UKRAINE EMIRATES KINGDOM AMERICA URUGUAY UZBEKISTAN VANUATU VATICAN VENEZUELA VIETNAM YEMEN ZAMBIA ZIMBABWE
     AARDVARK AARDWOLF ALPACA ANIMAL NATURE JUNGLE FOREST DESERT OCEAN MAMMAL REPTILE INSECT BADGER BEAVER BOBCAT BUFFALO CAMEL CHEETAH COYOTE COUGAR DONKEY DOLPHIN ELEPHANT FERRET FOX GIRAFFE GOPHER GORILLA HAMSTER HIPPOPOTAMUS HORSE HYENA JAGUAR KANGAROO LEMUR LEOPARD LION LLAMA MANATEE MEERKAT MONKEY MOOSE MOUSE NARWHAL OCELOT OTTER PANDA PANTHER PLATYPUS PORCUPINE POSSUM RABBIT RACCOON RHINOCEROS SHEEP SKUNK SLOTH SQUIRREL TIGER WALRUS WEASEL WHALE WOMBAT ZEBRA CONDOR CRANE EAGLE FALCON FLAMINGO GOOSE HAWK HERON HUMMINGBIRD OSTRICH PARROT PELICAN PENGUIN PIGEON RAVEN SEAGULL SPARROW STORK SWAN TOUCAN TURKEY VULTURE ANCHOVY BARRACUDA CATFISH CLOWNFISH GOLDFISH GUPPY JELLYFISH LOBSTER MARLIN OCTOPUS OYSTER PIRANHA SALMON SARDINE SEAHORSE SHARK SHRIMP SQUID STARFISH STINGRAY STURGEON SWORDFISH TROUT TUNA TURTLE ANTEATER ANTELOPE ARMADILLO BABOON CHAMELEON CHIMPANZEE CHIPMUNK COBRA CROCODILE DINOSAUR DRAGONFLY GAZELL GECKO HORNET IGUANA IMPALA JACKAL KOMODO LIZARD MAMMOTH MANTIS MOCKINGBIRD MONGOOSE MOSQUITO NEWT ORANGUTAN ORCA PEACOCK PYTHON RATTLESNAKE SALAMANDER SCORPION SERPENT SPIDER TERMITE TORTOISE VIPER WALLABY WARTHOG WASP WOLF WOLVERINE WOODPECKER
+    PRETTY BEAUTIFUL UGLY HAPPY ANGRY QUIET LOUD SMALL LARGE GIANT TINY HEAVY LIGHT QUICK SLOW YOUNG OLD RICH POOR CLEAN DIRTY EMPTY FULL HARD SOFT EASY TOUGH SIMPLE COMPLEX BRAVE SCARED CALM WILD NICE KIND RUDE SWEET SOUR BITTER FRESH STALE HOT COLD WARM COOL DRY WET RAINY SUNNY WINDY CLOUDY STORMY BRIGHT DARK SHINY DULL SHARP BLUNT SMOOTH ROUGH STEEP FLAT ROUND SQUARE WIDE NARROW THICK THIN TALL SHORT LONG DEEP SHALLOW BROAD TIGHT LOOSE GOOD BAD GREAT AWFUL FINE SICK HEALTHY WEAK STRONG TIRED BUSY LAZY SMART STUPID CLEVER FUNNY SERIOUS BORING EXCITING LUCKY SAFE REAL FAKE TRUE FALSE WRONG RIGHT EARLY LATE READY NEW OLD USED MODERN ANCIENT FUTURE PAST PRESENT PUBLIC PRIVATE SECRET OPEN CLOSED FREE CHEAP EXPENSIVE WORTHY VALUE LOCAL GLOBAL MAJOR MINOR SOCIAL LEGAL CIVIL HUMAN MORAL FINAL FIRST LAST UPPER LOWER INNER OUTER TOTAL EQUAL BLANK PRIME GRAND ROYAL NOBLE PROUD SORRY GUILTY LOVELY CUTE FANCY PLAIN WEIRD STRANGE CRAZY SANE ALIVE DEAD AWAKE ASLEEP HUNGRY THIRSTY FAMOUS UNKNOWN NATIVE FOREIGN WHOLE SPLIT BROKEN FIXED SINGLE MARRIED SINGLE ALONE LONELY CROWDED POLITE HUMBLE GENTLE CRUEL FIERCE SCARY SPOOKY CREEPY NASTY TASTY YUMMY SPICY BLAND SALTY GREASY CRISPY JUICY RIPE ROTTEN MOLDY TOXIC FATAL VITAL VALID VOID NULL ZERO TOTAL WHOLE EMPTY
     GOOGLE AMAZON APPLE MICROSOFT SAMSUNG TOYOTA HONDA NISSAN FERRARI PORSCHE LAMBORGHINI MERCEDES BUGATTI TESLA SUZUKI YAMAHA KAWASAKI DUCATI BOEING AIRBUS ADIDAS REEBOK CONVERSE VANS GUCCI PRADA VERSACE ROLEX OMEGA CARTIER TIFFANY CANON NIKON SONY INTEL ORACLE CISCO ADOBE PEPSI SPRITE FANTA REDBULL NESCAFE STARBUCKS MCDONALDS BURGER PIZZA SUBWAY DOMINOS KFC WENDYS WALMART TARGET COSTCO IKEA NETFLIX DISNEY SPOTIFY TWITTER FACEBOOK INSTAGRAM TIKTOK LINKEDIN YOUTUBE TWITCH REDDIT
     DESCRIPTION IMAGINATION INFORMATION EDUCATION DEVELOPMENT RELATIONSHIP ORGANIZATION INTERNATIONAL ENVIRONMENTAL COMMUNICATION REPRESENTATIVE ADMINISTRATION RESPONSIBILITY
     DIRECTOR BEHAVIOR DISASTER DISORDER REGISTER RECEIVER DAUGHTER DISTANCE DISTRICT DELIVERY DECISION DOMESTIC DEADLINE DOCTRINE DATABASE DAYLIGHT
@@ -167,6 +169,7 @@
     const resetZone = document.getElementById('reset-zone');
     const filterLayer = document.getElementById('filter-layer');
     const filterLetter = document.getElementById('filter-letter');
+    const filterInstructions = document.getElementById('filter-instructions');
 
     // --- INITIALIZATION ---
     async function init() {
@@ -186,11 +189,9 @@
     }
 
     function parseWords(text, targetDict) {
-        // Uses regex to split words - handles both offline list and online list
         const words = text.split(/[\s,]+/);
         words.forEach(w => {
             const word = w.trim().toUpperCase();
-            // FILTER: Strict length check saves memory
             if (word.length < CONFIG.minLen || word.length > CONFIG.maxLen) return;
 
             const v = getVowels(word);
@@ -203,9 +204,8 @@
             const key = `${len}-${v1}-${v2}-${s1}-${s2}`;
             if (!targetDict[key]) targetDict[key] = [];
             
-            // OPTIMIZATION: Don't store duplicates or extremely obscure duplicates if array gets too big
             if (!targetDict[key].includes(word)) {
-                if(targetDict[key].length < 30) { // Safety cap for collision lists
+                if(targetDict[key].length < 30) {
                     targetDict[key].push(word);
                 }
             }
@@ -215,12 +215,12 @@
     // --- MAIN INPUT ROUTER & SWIPES ---
     let touchStartX = 0;
     let touchStartY = 0;
+    let isFiltering = false; // Flag to prevent multi-swipe during flash
 
     document.addEventListener('touchstart', (e) => {
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
 
-        // Reset Button Logic
         if (e.target.id === 'reset-zone') {
              e.stopPropagation();
              location.reload();
@@ -236,18 +236,17 @@
     document.addEventListener('touchend', (e) => {
         let touchEndX = e.changedTouches[0].clientX;
         let touchEndY = e.changedTouches[0].clientY;
-
         let diffX = touchEndX - touchStartX;
         let diffY = touchEndY - touchStartY;
 
-        // --- SAFETY FEATURE: SWIPE DOWN TO UNDO ---
+        // --- SWIPE DOWN TO UNDO ---
         if (diffY > 60 && Math.abs(diffX) < 40) {
             undoPhase();
             return; 
         }
 
         // --- FILTER PHASE SWIPES (Left/Right) ---
-        if (phase === 6) {
+        if (phase === 6 && !isFiltering) {
             if (Math.abs(diffX) > 40) {
                 if (diffX > 0) processFilter(true); // Right (Yes)
                 else processFilter(false); // Left (No)
@@ -333,9 +332,7 @@
     function prepareReveal() {
         const key = `${inputs.len}-${inputs.v1}-${inputs.v2}-${inputs.s1}-${inputs.s2}`;
         activeCandidates = [];
-        // Check core dictionary first (Guaranteed)
         if (priorityDict[key]) activeCandidates = [...priorityDict[key]];
-        // Add online words if not already present
         if (backupDict[key]) {
             backupDict[key].forEach(w => { if (!activeCandidates.includes(w)) activeCandidates.push(w); });
         }
@@ -356,6 +353,7 @@
     }
 
     function nextFilterQuestion() {
+        // Calculate best splitting letter
         let charCounts = {};
         activeCandidates.forEach(word => {
             let uniqueChars = [...new Set(word.split(''))];
@@ -380,10 +378,43 @@
     }
 
     function processFilter(isYes) {
+        isFiltering = true; // Block touches
+
+        // 1. FILTER LOGIC
         if (isYes) activeCandidates = activeCandidates.filter(w => w.includes(currentFilterLetter));
         else activeCandidates = activeCandidates.filter(w => !w.includes(currentFilterLetter));
-        if (activeCandidates.length <= 1) revealFinal();
-        else nextFilterQuestion();
+
+        // 2. FLASHING ANIMATION
+        const instructions = document.getElementById('filter-instructions');
+        const display = document.getElementById('filter-letter');
+
+        instructions.style.opacity = 0; // Hide instructions
+        display.style.fontSize = "1.5rem"; // Shrink for word display
+
+        let counter = 0;
+        const totalFlashes = 10; // Number of flickers
+
+        const flashInterval = setInterval(() => {
+            if (activeCandidates.length > 0) {
+                // Pick random word from remaining list
+                const rand = activeCandidates[Math.floor(Math.random() * activeCandidates.length)];
+                display.innerText = rand;
+            } else {
+                display.innerText = "...";
+            }
+            counter++;
+
+            // 3. END ANIMATION
+            if (counter >= totalFlashes) {
+                clearInterval(flashInterval);
+                display.style.fontSize = "4rem"; // Restore size
+                instructions.style.opacity = 1;
+                isFiltering = false;
+
+                if (activeCandidates.length <= 1) revealFinal();
+                else nextFilterQuestion();
+            }
+        }, 50); // Speed of flicker (ms)
     }
 
     function revealFinal() {

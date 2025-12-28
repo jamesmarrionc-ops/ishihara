@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Mind Reader Stealth</title>
+    <title>Locked</title>
     <style>
         /* --- CORE STYLES --- */
         :root { --bg: #000; --text: #fff; --dim: #555; --stealth: #333; }
@@ -20,17 +20,18 @@
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
             background-color: var(--bg); color: var(--text);
-            font-family: -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            /* System font to look like native OS */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             overflow: hidden; position: fixed;
         }
 
-        /* --- STATUS DOT (Top Right) --- */
+        /* --- STATUS DOT (Tiny & Discreet) --- */
         #dict-dot {
-            position: absolute; top: 20px; right: 20px;
-            width: 6px; height: 6px; border-radius: 50%;
-            background-color: #ffa500; /* Default Orange (Offline) */
+            position: absolute; top: 15px; right: 15px;
+            width: 4px; height: 4px; border-radius: 50%;
+            background-color: #ffa500; 
             transition: background-color 0.5s;
-            z-index: 50; opacity: 0.6;
+            z-index: 50; opacity: 0.5;
         }
 
         /* --- INPUT LAYER --- */
@@ -41,19 +42,19 @@
         
         .shape-zone {
             flex: 1; display: flex; align-items: center; justify-content: center;
-            font-size: 14px; letter-spacing: 2px; color: var(--dim);
+            font-size: 14px; letter-spacing: 2px; color: #222; /* Very dark text */
             border-bottom: 1px solid #111; opacity: 0; transition: opacity 0.3s;
         }
         .shape-zone:last-child { border-bottom: none; }
 
-        /* --- STATUS TEXT --- */
+        /* --- STATUS TEXT (Guides) --- */
         #status {
             position: absolute; bottom: 15%; left: 0; width: 100%;
-            text-align: center; color: var(--dim); font-size: 12px; letter-spacing: 1px;
+            text-align: center; color: #333; font-size: 10px; letter-spacing: 1px;
             pointer-events: none; transition: color 0.2s;
         }
 
-        /* --- FILTER LAYER (PEEK MODE) --- */
+        /* --- FILTER LAYER (Stealth Peek) --- */
         #filter-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg); display: none;
@@ -61,35 +62,58 @@
             z-index: 15;
         }
         
-        /* THE PEEK: Small, Dark, Discreet */
         #filter-letter {
-            font-size: 2rem; /* Small font */
-            font-weight: 600; 
-            color: var(--stealth); /* Dark Grey (Hard for spectators to see) */
-            margin-bottom: 10px;
+            font-size: 2rem; 
+            font-weight: 300; 
+            color: #222; /* Barely visible dark grey */
+            margin-bottom: 0px;
         }
         
         #filter-instructions {
             display: flex; width: 100%; justify-content: space-between; padding: 0 40px;
-            font-size: 10px; color: #222; /* Almost invisible guides */
+            font-size: 10px; color: #111; /* Almost invisible */
             text-transform: uppercase; letter-spacing: 2px;
             position: absolute; bottom: 40px;
         }
 
-        /* --- REVEAL LAYER --- */
+        /* --- REVEAL LAYER (Locked Phone Look) --- */
         #reveal-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg); display: none;
+            background: #000; /* Pure Black */
+            display: none;
             flex-direction: column; align-items: center; justify-content: center;
             z-index: 20; padding: 20px;
         }
-        #primary-word { font-size: 3rem; font-weight: 800; text-align: center; margin-bottom: 15px; line-height: 1.1; }
-        #alt-words { font-size: 1rem; color: var(--dim); text-align: center; max-width: 90%; margin-bottom: 40px; font-weight: 300; line-height: 1.5; }
+
+        /* FAKE CLOCK (Optional - makes it look like Always On Display) */
+        #fake-clock {
+            font-size: 3rem; font-weight: 200; color: #333;
+            margin-bottom: 10px; opacity: 0.8;
+        }
+
+        /* THE WORD - Disguised as Date/Notification */
+        #primary-word { 
+            font-size: 1.2rem; 
+            font-weight: 400; 
+            color: #444; /* Dark Grey - Looks like dim standby text */
+            text-align: center; 
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
         
-        #reset-btn {
-            padding: 15px 50px; border-radius: 50px;
-            background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
-            font-size: 12px; letter-spacing: 2px; color: #fff; text-transform: uppercase;
+        /* Secondary candidates (if any) - Hidden unless needed */
+        #alt-words { 
+            font-size: 0.7rem; 
+            color: #111; /* Extremely faint */
+            text-align: center; 
+            margin-top: 20px;
+        }
+        
+        /* INVISIBLE RESET BUTTON */
+        #reset-zone {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 15%;
+            background: transparent; /* Invisible */
+            z-index: 30;
         }
     </style>
 </head>
@@ -98,15 +122,13 @@
     <div id="dict-dot"></div>
 
     <div id="input-layer">
-        <div class="shape-zone" id="top-zone" data-shape="S">STRAIGHT (A E F H...)</div>
-        <div class="shape-zone" id="mid-zone" data-shape="C">CURVED (C O S U)</div>
-        <div class="shape-zone" id="bot-zone" data-shape="M">MIXED (B D G P R...)</div>
+        <div class="shape-zone" id="top-zone" data-shape="S">STRAIGHT</div>
+        <div class="shape-zone" id="mid-zone" data-shape="C">CURVED</div>
+        <div class="shape-zone" id="bot-zone" data-shape="M">MIXED</div>
     </div>
 
     <div id="filter-layer">
         <div id="filter-letter">?</div>
-        <div style="color: #222; margin-top: 10px; font-size: 10px;">ASK LETTER</div>
-        
         <div id="filter-instructions">
             <span>&lt; No</span>
             <span>Yes &gt;</span>
@@ -116,10 +138,10 @@
     <div id="status">System Ready</div>
 
     <div id="reveal-layer">
+        <div id="fake-clock">12:00</div>
         <div id="primary-word">...</div>
         <div id="alt-words"></div>
-        <div id="reset-btn">RESET</div>
-    </div>
+        <div id="reset-zone"></div> </div>
 
 <script>
     // --- PREVENT ZOOM ---
@@ -132,6 +154,16 @@
         tapTime: 2500,
         dictUrl: 'https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt'
     };
+
+    // --- REAL CLOCK SCRIPT ---
+    function updateClock() {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        document.getElementById('fake-clock').innerText = `${hours}:${minutes}`;
+        setTimeout(updateClock, 1000);
+    }
+    updateClock();
 
     // --- CORE DICTIONARY (OFFLINE PRIORITY) ---
     const CORE_WORDS = `
@@ -162,7 +194,7 @@
     const status = document.getElementById('status');
     const dot = document.getElementById('dict-dot');
     const zones = document.querySelectorAll('.shape-zone');
-    const resetBtn = document.getElementById('reset-btn');
+    const resetZone = document.getElementById('reset-zone');
     const filterLayer = document.getElementById('filter-layer');
     const filterLetter = document.getElementById('filter-letter');
 
@@ -199,37 +231,84 @@
         });
     }
 
-    // --- MAIN INPUT ROUTER ---
+    // --- MAIN INPUT ROUTER & SWIPES ---
+    let touchStartX = 0;
+    let touchStartY = 0;
+
     document.addEventListener('touchstart', (e) => {
-        if (phase === 6) { 
-            filterTouchStart = e.touches[0].clientX;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+
+        // Reset Button Logic
+        if (e.target.id === 'reset-zone') {
+             e.stopPropagation();
+             location.reload();
+             return;
+        }
+
+        if (phase <= 3 && e.target.closest('#input-layer')) {
+             if (navigator.vibrate) navigator.vibrate(10);
+             handleTap();
+        } 
+    });
+
+    document.addEventListener('touchend', (e) => {
+        let touchEndX = e.changedTouches[0].clientX;
+        let touchEndY = e.changedTouches[0].clientY;
+
+        let diffX = touchEndX - touchStartX;
+        let diffY = touchEndY - touchStartY;
+
+        // --- SAFETY FEATURE: SWIPE DOWN TO UNDO ---
+        if (diffY > 60 && Math.abs(diffX) < 40) {
+            undoPhase();
+            return; 
+        }
+
+        // --- FILTER PHASE SWIPES (Left/Right) ---
+        if (phase === 6) {
+            if (Math.abs(diffX) > 40) {
+                if (diffX > 0) processFilter(true); // Right (Yes)
+                else processFilter(false); // Left (No)
+            }
             return;
         }
 
-        if (e.target.id === 'input-layer' || e.target.parentElement.id === 'input-layer') {
-             if (navigator.vibrate) navigator.vibrate(10);
-             if (phase <= 3) {
-                 handleTap();
-             } else if (e.target.classList.contains('shape-zone')) {
-                 handleShape(e.target.dataset.shape);
-             }
-        }
-    });
-
-    // --- FILTER SWIPE LOGIC ---
-    let filterTouchStart = 0;
-    document.addEventListener('touchend', (e) => {
-        if (phase === 6) {
-            let endX = e.changedTouches[0].clientX;
-            let diff = endX - filterTouchStart;
-            if (Math.abs(diff) > 40) {
-                if (diff > 0) processFilter(true); // Right (Yes)
-                else processFilter(false); // Left (No)
+        // --- SHAPE SELECTION ---
+        if ((phase === 4 || phase === 5) && Math.abs(diffX) < 20 && Math.abs(diffY) < 20) {
+            if (e.target.classList.contains('shape-zone')) {
+                if (navigator.vibrate) navigator.vibrate(10);
+                handleShape(e.target.dataset.shape);
             }
         }
+        
+        // --- V2 SKIP SWIPE ---
+        if (phase === 3 && (touchStartX - touchEndX > 80)) {
+            clearTimeout(tapTimer);
+            inputs.v2 = 0; phase = 4;
+            if (navigator.vibrate) navigator.vibrate([30, 30]);
+            status.innerText = "Skipped V2. Shape Mode.";
+            showZones();
+        }
     });
 
-    // --- CORE LOGIC ---
+    // --- UNDO LOGIC ---
+    function undoPhase() {
+        if (phase <= 1) return;
+        if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+        phase--;
+        clearTimeout(tapTimer);
+        tapCount = 0;
+        status.style.color = "#888";
+
+        if (phase === 1) { inputs.len = 0; status.innerText = "System Reset: Enter Length"; hideZones(); filterLayer.style.display = 'none'; }
+        else if (phase === 2) { inputs.v1 = 0; status.innerText = "Length Locked. Enter V1."; }
+        else if (phase === 3) { inputs.v2 = 0; status.innerText = "V1 Locked. Enter V2."; hideZones(); }
+        else if (phase === 4) { inputs.s1 = ''; status.innerText = "V2 Locked. Shape 1."; showZones(); filterLayer.style.display = 'none'; }
+        else if (phase === 5) { inputs.s2 = ''; status.innerText = "Shape 1 Locked. Shape 2."; showZones(); filterLayer.style.display = 'none'; document.getElementById('reveal-layer').style.display = 'none'; }
+    }
+
+    // --- LOGIC ---
     function handleTap() {
         clearTimeout(tapTimer);
         tapCount++;
@@ -243,7 +322,7 @@
 
         if (phase === 1) {
             inputs.len = tapCount;
-            status.innerText = (inputs.len > 0 && inputs.len < CONFIG.minLen) ? "Warning: Short Word" : "Length Locked";
+            status.innerText = "Length Locked";
             phase = 2;
         } else if (phase === 2) {
             inputs.v1 = tapCount;
@@ -272,15 +351,12 @@
 
     function prepareReveal() {
         const key = `${inputs.len}-${inputs.v1}-${inputs.v2}-${inputs.s1}-${inputs.s2}`;
-        
-        // Merge Lists
         activeCandidates = [];
         if (priorityDict[key]) activeCandidates = [...priorityDict[key]];
         if (backupDict[key]) {
             backupDict[key].forEach(w => { if (!activeCandidates.includes(w)) activeCandidates.push(w); });
         }
 
-        // CRITICAL: Check immediately if we have a winner
         if (activeCandidates.length <= 1) {
             revealFinal();
         } else {
@@ -297,94 +373,56 @@
     }
 
     function nextFilterQuestion() {
-        // Recalculate best letter
         let charCounts = {};
         activeCandidates.forEach(word => {
             let uniqueChars = [...new Set(word.split(''))];
             uniqueChars.forEach(c => {
-                if (!askedLetters.includes(c)) {
-                    charCounts[c] = (charCounts[c] || 0) + 1;
-                }
+                if (!askedLetters.includes(c)) charCounts[c] = (charCounts[c] || 0) + 1;
             });
         });
 
         let target = activeCandidates.length / 2;
         let bestChar = '';
         let minDiff = Infinity;
-
         for (let c in charCounts) {
             let diff = Math.abs(charCounts[c] - target);
-            if (diff < minDiff) {
-                minDiff = diff;
-                bestChar = c;
-            }
+            if (diff < minDiff) { minDiff = diff; bestChar = c; }
         }
 
-        if (!bestChar) {
-            revealFinal(); // No letters left to split
-            return;
-        }
-
+        if (!bestChar) { revealFinal(); return; }
         currentFilterLetter = bestChar;
         askedLetters.push(bestChar);
         filterLetter.innerText = currentFilterLetter;
-        
         if (navigator.vibrate) navigator.vibrate(50);
     }
 
     function processFilter(isYes) {
-        // Filter the list
-        if (isYes) {
-            activeCandidates = activeCandidates.filter(w => w.includes(currentFilterLetter));
-        } else {
-            activeCandidates = activeCandidates.filter(w => !w.includes(currentFilterLetter));
-        }
-
-        // CHECK AGAIN IMMEDIATELY
-        if (activeCandidates.length <= 1) {
-            revealFinal();
-        } else {
-            nextFilterQuestion();
-        }
+        if (isYes) activeCandidates = activeCandidates.filter(w => w.includes(currentFilterLetter));
+        else activeCandidates = activeCandidates.filter(w => !w.includes(currentFilterLetter));
+        if (activeCandidates.length <= 1) revealFinal();
+        else nextFilterQuestion();
     }
 
     function revealFinal() {
         filterLayer.style.display = 'none';
         hideZones();
-        phase = 7;
+        phase = 7; 
 
         const pWord = document.getElementById('primary-word');
         const aWord = document.getElementById('alt-words');
 
         if (activeCandidates.length > 0) {
             pWord.innerText = activeCandidates[0];
-            aWord.innerText = activeCandidates.length > 1 ? activeCandidates.slice(1, 6).join("   ") : "";
+            aWord.innerText = activeCandidates.length > 1 ? activeCandidates.slice(1, 6).join(" ") : "";
         } else {
-            pWord.innerText = "NO MATCH";
-            aWord.innerText = `IN: ${inputs.len}-${inputs.v1}-${inputs.v2} (${inputs.s1}/${inputs.s2})`;
+            pWord.innerText = "No Match";
+            aWord.innerText = `${inputs.len}-${inputs.v1}-${inputs.v2} (${inputs.s1}/${inputs.s2})`;
         }
         document.getElementById('reveal-layer').style.display = 'flex';
     }
 
     function showZones() { zones.forEach(z => { z.style.opacity = 0.3; z.style.pointerEvents = "auto"; }); }
     function hideZones() { zones.forEach(z => { z.style.opacity = 0; z.style.pointerEvents = "none"; }); }
-
-    // --- LEGACY SKIP V2 ---
-    let startX = 0;
-    document.addEventListener('touchstart', e => startX = e.touches[0].clientX);
-    document.addEventListener('touchend', e => {
-        if (phase === 3) {
-             if (startX - e.changedTouches[0].clientX > 80) {
-                clearTimeout(tapTimer);
-                inputs.v2 = 0; phase = 4;
-                if (navigator.vibrate) navigator.vibrate([30, 30]);
-                status.innerText = "Skipped V2. Shape Mode.";
-                showZones();
-            }
-        }
-    });
-
-    resetBtn.addEventListener('click', (e) => { e.stopPropagation(); location.reload(); });
 
     function getShape(char) {
         const c = char.toUpperCase();

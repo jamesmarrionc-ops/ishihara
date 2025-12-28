@@ -4,314 +4,274 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Search</title>
+    <title>Mind Reader Pro</title>
     <style>
-        /* --- CORE STYLE & NO SCROLL FIX --- */
-        :root {
-            --bg-color: #000000;
-            --text-primary: #ffffff;
-            --text-secondary: #888888;
-        }
-
+        /* --- PRO STYLING --- */
+        :root { --bg: #000; --text: #fff; --dim: #555; --accent: #333; }
         * { box-sizing: border-box; touch-action: none; user-select: none; -webkit-tap-highlight-color: transparent; }
         
         body, html {
-            margin: 0; padding: 0;
-            width: 100%; height: 100%;
-            background-color: var(--bg-color);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            overflow: hidden; /* KILLS SCROLLING */
-            position: fixed; /* LOCKS VIEWPORT */
-            color: var(--text-primary);
-            cursor: default;
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--bg); color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            overflow: hidden; position: fixed;
         }
 
-        /* --- INPUT LAYER --- */
-        #input-layer {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 10;
-            display: flex; flex-direction: column;
-        }
-
-        /* SHAPE ZONES */
+        /* --- INPUTS --- */
+        #input-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; }
         .shape-zone {
-            flex: 1; width: 100%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px; letter-spacing: 2px;
-            color: var(--text-secondary);
-            opacity: 0; 
-            transition: opacity 0.4s ease;
-            pointer-events: none;
-            border-bottom: 1px solid #111;
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            font-size: 14px; letter-spacing: 2px; color: var(--dim);
+            border-bottom: 1px solid #111; opacity: 0; transition: opacity 0.3s;
         }
         .shape-zone:last-child { border-bottom: none; }
 
-        /* --- STATUS TEXT --- */
+        /* --- STATUS --- */
         #status {
-            position: absolute; 
-            bottom: 140px; /* Moved up slightly */
-            left: 0; width: 100%;
-            text-align: center; 
-            color: var(--text-secondary); 
-            font-size: 13px; 
-            font-weight: 400; 
-            letter-spacing: 0.5px;
-            pointer-events: none;
-            transition: color 0.3s ease;
+            position: absolute; bottom: 15%; left: 0; width: 100%;
+            text-align: center; color: var(--dim); font-size: 12px; letter-spacing: 1px;
+            pointer-events: none; transition: color 0.2s;
+        }
+        #dict-status {
+            position: absolute; top: 10px; right: 10px; 
+            font-size: 10px; color: #333; pointer-events: none;
         }
 
-        /* --- REVEAL LAYER --- */
+        /* --- REVEAL --- */
         #reveal-layer {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: var(--bg-color);
-            display: none;
-            flex-direction: column;
-            align-items: center; justify-content: center;
-            z-index: 20;
-            padding: 20px;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg); display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+            z-index: 20; padding: 20px;
         }
-
-        .label {
-            font-size: 12px; color: var(--text-secondary); 
-            text-transform: uppercase; letter-spacing: 2px;
-            margin-bottom: 20px;
-        }
-
-        #primary-word {
-            font-size: 3.2rem; font-weight: 700; text-transform: uppercase;
-            text-align: center; color: var(--text-primary); 
-            letter-spacing: 1px; margin-bottom: 15px; line-height: 1.1;
-        }
-
-        #alt-words { 
-            font-size: 1rem; color: var(--text-secondary); 
-            text-align: center; max-width: 95%; 
-            line-height: 1.5; font-weight: 300;
-        }
-
-        /* --- RESET BUTTON --- */
-        #reset-container {
-            position: absolute; bottom: 50px; left: 0; width: 100%;
-            display: flex; justify-content: center;
-        }
+        #primary-word { font-size: 3rem; font-weight: 800; text-align: center; margin-bottom: 15px; line-height: 1.1; }
+        #alt-words { font-size: 1rem; color: var(--dim); text-align: center; max-width: 90%; margin-bottom: 40px; font-weight: 300; }
+        
         #reset-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            padding: 14px 40px;
-            border-radius: 50px;
-            font-size: 13px; font-weight: 600; letter-spacing: 1.5px;
-            color: #fff; text-transform: uppercase;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            padding: 15px 50px; border-radius: 50px;
+            background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
+            font-size: 12px; letter-spacing: 2px; color: #fff; text-transform: uppercase;
         }
-        #reset-btn:active { background: rgba(255, 255, 255, 0.2); }
-
     </style>
 </head>
 <body>
 
+    <div id="dict-status">OFFLINE MODE</div>
+
     <div id="input-layer">
-        <div class="shape-zone" id="top-zone" data-shape="S">STRAIGHT (A, E, F, H...)</div>
-        <div class="shape-zone" id="mid-zone" data-shape="C">CURVED (C, O, S, U)</div>
-        <div class="shape-zone" id="bot-zone" data-shape="M">MIXED (B, D, G, P, R...)</div>
+        <div class="shape-zone" id="top-zone" data-shape="S">STRAIGHT (A E F H...)</div>
+        <div class="shape-zone" id="mid-zone" data-shape="C">CURVED (C O S U)</div>
+        <div class="shape-zone" id="bot-zone" data-shape="M">MIXED (B D G P...)</div>
     </div>
 
-    <div id="status">System Initializing...</div>
+    <div id="status">System Ready</div>
 
     <div id="reveal-layer">
-        <div class="label">Result</div>
         <div id="primary-word">...</div>
         <div id="alt-words"></div>
-        <div id="reset-container"><div id="reset-btn">Start Over</div></div>
+        <div id="reset-btn">RESET</div>
     </div>
 
 <script>
-    // --- CONFIG ---
-    const TAP_TIMEOUT = 2500; 
-    const MIN_WORD_LEN = 6; 
-    const MAX_WORD_LEN = 15;
+    // --- CONFIGURATION ---
+    const CONFIG = {
+        minLen: 6,       // Strict: Nothing under 6
+        maxLen: 14,
+        tapTime: 2500,
+        // The URL for the huge backup dictionary (50k+ words)
+        dictUrl: 'https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt'
+    };
 
-    // --- MANUAL SAFETY NET (For Words not in common lists) ---
-    const MANUAL_INJECTION = [
-        "PHILIPPINES", "SINGAPORE", "MALAYSIA", "INDONESIA", "THAILAND", 
-        "AUSTRALIA", "AMERICA", "SWITZERLAND", "ARGENTINA", "PORTUGAL",
-        "JUPITER", "SATURN", "NEPTUNE", "MERCURY", "URANUS",
-        "ELEPHANT", "GIRAFFE", "KANGAROO", "CHIMPANZEE", "CROCODILE",
-        "DIAMOND", "EMERALD", "SAPPHIRE", "AMETHYST"
-    ];
+    // --- LAYER 1: PRIORITY DICTIONARY (Embedded) ---
+    // These are the top ~3,500 words people ACTUALLY think of.
+    // They are checked FIRST. This prevents "Abbacies" from beating "Insights".
+    const CORE_WORDS = `
+    PEOPLE FAMILY MOTHER FATHER FRIEND PERSON GROWTH HEALTH SYSTEM OFFICE RESULT CHANGE ANSWER FUTURE ACTION EFFECT PERIOD LETTER MOMENT SECOND LITTLE REASON LESSON RECORD PUBLIC MATTER CENTER COUPLE MEMBER GENERAL SPIRIT CHANCE DOCTOR ENERGY INCOME DEGREE DESIGN AMOUNT GARDEN TRAVEL WINDOW SUMMER WINTER BOTTLE SCREEN FOREST STREET SOCCER TENNIS BASKET ORANGE BANANA CHERRY TOMATO POTATO CARROT PENCIL ANIMAL NATURE POLICE MEMORY SEASON CAMERA JACKET GUITAR PLANET SERVER CLIENT ACCESS IMPORT EXPORT STATUS UPDATE SEARCH ONLINE REMOVE DELETE CREATE SUBMIT CANCEL SELECT OPTION FOLLOW REVIEW WRITER ARTIST PLAYER WORKER LEADER SCHOOL REPORT MARKET CREDIT CORNER FINGER GROUND HEAVEN ISLAND NUMBER POCKET SISTER SPRING WONDER YELLOW CIRCLE SQUARE SHAPES COLORS ORANGE PURPLE SILVER GOLDEN MONDAY FRIDAY SUNDAY AUGUST EASTER FATHER MOTHER PARENT DOLLAR WEIGHT HEIGHT LENGTH VOLUME OUTPUT INPUTS CODING SCRIPT ENGINE SWITCH BRIDGE CASTLE PALACE MUSEUM TEMPLE CHURCH MOSQUE SCHOOL PRISON GARAGE OFFICE STUDIO CINEMA THEATER CIRCUS MARKET BAKERY BARBER BEAUTY SALON DOCTOR DENTAL CLINIC FOREST DESERT VALLEY CANYON ISLAND PLANET GALAXY NEBULA COMETS METEOR CRATER ROCKET ENGINE SENSOR ROBOTS DRONES LASERS PHONES TABLET LAPTOP SCREEN CAMERA BUTTON SWITCH SOCKET CABLES WIRING COPPER SILVER CARBON OXYGEN HELIUM LIQUID PLASMAS ENERGY POWER MOTORS BRAKES CLUTCH WHEELS MIRROR BUMPER WINDOW WIPERS LIGHTS SEATS CARPET FABRIC COTTON VELVET LEATHER CANVAS PLASTIC RUBBER METALS BRONZE COPPER NICKEL COBALT CHROME MARBLE GRANITE QUARTZ GRAVEL CEMENT BRICKS TIMBER BOARDS PLANKS SHEETS PAPERS CARTON PARCEL PACKET BASKET BUCKET BOTTLE BARREL CARTON PACKET DINNER SUPPER BRUNCH BUFFET PICNIC SNACKS COFFEE SUGARED SPICES PEPPER GARLIC ONIONS TOMATO POTATO CARROT CELERY LETTUCE RADISH TURNIP BAKERY PASTRY DONUTS MUFFIN COOKIE BISCUIT BUTTER CHEESE YOGURT CREAMY FROZEN GELATO SORBET SUNDAE BANANA ORANGE GRAPES APPLES MELONS PAPAYA MANGOE CHERRY BERRIES LEMONS LIMES
+    PHILIPPINES SINGAPORE MALAYSIA INDONESIA THAILAND AUSTRALIA AMERICA SWITZERLAND ARGENTINA PORTUGAL JUPITER SATURN NEPTUNE MERCURY URANUS ELEPHANT GIRAFFE KANGAROO CHIMPANZEE CROCODILE DIAMOND EMERALD SAPPHIRE AMETHYST PLATINUM
+    DESCRIPTION INSIGHTS INFORMATION DEPARTMENT GOVERNMENT UNIVERSITY MANAGEMENT INVESTMENT AGREEMENT TECHNOLOGY CONFERENCE PROTECTION COLLECTION TELEVISION PRODUCTION UNDERSTAND DIFFERENCE EVERYTHING LITERATURE POPULATION RESTAURANT CONNECTION EXPRESSION LEADERSHIP GENERATION INDIVIDUAL BASKETBALL VOLLEYBALL EXPERIENCE PERMISSION WASHINGTON CALIFORNIA BACKGROUND BEAUTIFUL CHALLENGE CHARACTER DIRECTION EDUCATION EXECUTIVE IMPORTANT IMPOSSIBLE INTERESTED NEWSPAPER PARTNERSHIP PROFESSIONAL REFLECTION SUCCESSFUL SURPRISING UNDERSTAND ACCOUNTS SERVICES BUSINESS INDUSTRY SECURITY STRATEGY TRAINING ANALYSIS BENEFITS COMPUTER CONTRACT DIRECTOR ELECTION EMPLOYEE EXCHANGE HOSPITAL LANGUAGE LOCATION MAGAZINE MATERIAL MILITARY NATIONAL NORTHERN ORIGINAL PAINTING PHYSICAL POSITIVE PRACTICE PRESSURE PROPERTY QUESTION RELIGIOUS REPUBLIC SOUTHERN SPECIFIC STANDARD STRENGTH TEACHER THOUGHTS VACATION WESTERN WHATEVER YOURSELF ACTIVITY ACTUALLY ALTHOUGH AMERICAN ANYTHING ANYWHERE ATTORNEY AUDIENCE BEHAVIOR BUILDING CAMPAIGN CAPACITY CATHOLIC CERTAINLY CHILDREN CLINICAL CLOTHING COMPLAIN COMPLETE CONSIDER CONSUMER CONTINUE COVERAGE CREATION CRIMINAL CRITICAL CULTURAL CURRENCY CUSTOMER DAUGHTER DECISION DELIVERY DISASTER DISCOVER DISORDER DISTANCE DISTRICT DOMESTIC DRIVEWAY EARNINGS ECONOMIC EIGHTEEN ELECTION ELECTRIC ELEVATOR EMPHASIS ENTRANCE ENVELOPE EVIDENCE EXERCISE EXISTING EXTERNAL FAMILIAR FAVORITE FEBRUARY FESTIVAL FOOTBALL FORECAST FOREVER FORMERLY FOURTEEN FREQUENT FRIGHTEN FUNCTION FURNITURE GAMBLING GATHERING GOODBYE GRADUATE GRANDSON GREATEST HANDSOME HAPPENED HAPPINESS HEADLINE HEADQUARTERS HERSELF HIGHWAY HISTORIC HOLDING HOLIDAYS HOMEMADE HOMETOWN HONGKONG HOPEFULLY HORRIBLE HOSPITAL HOWEVER HUNDRED HUSBAND IDENTITY ILLEGAL ILLNESS ILLUSION INDUSTRY INNOCENT INSPIRED INSTANCE INTERNAL INTERNET INVASION INVESTOR INVOLVED ISOLATED JUDGMENT KEYBOARD KITCHEN LANDLORD LAUGHTER LAWNMOWER LIFETIME LIGHTING LIMITATION LOCATION LUNCHEON MAGAZINE MAINLAND MAJORITY MARRIAGE MATERIAL MATTRESS MEASURES MEDIEVAL MEMORIAL MERCHANT MIDNIGHT MILITARY MINISTER MINISTRY MINORITY MISERY MISTRESS MODERATE MONITORS MOUNTAIN MOVEMENT MUSICAL MUSICIAN NATIONAL NEGATIVE NEIGHBOR NINETEEN NORTHERN NOTEBOOK NUMEROUS OBJECTIVE OBSERVER OCCASION OFFICIAL OKLAHOMA OPERATION OPERATOR OPINION OPPONENT OPPOSITE ORDINARY ORGANIC ORIGINAL OVERCOME OVERHEAD PAINTING PARALLEL PARENTAL PASSENGER PATIENCE PAVEMENT PAYMENT PENALTY PERSONAL PHYSICAL PICTURES PIPEWORK PLATFORM PLEASANT PLEASURE PLENTIFUL PORTRAIT POSITIVE POSSIBLE POTATOES POWERFUL PRECIOUS PREGNANT PREMIER PRESENCE PRESERVE PRESSURE PREVIOUS PRINCESS PRINTING PRIORITY PRISONER PROBABLY PRODUCER PROFOUND PROGRESS PROPOSAL PROSPECT PROVIDER PROVINCE PULLOVER PURCHASE PURELY PURPOSE QUANTITY QUARTER QUESTION QUOTIENT RAILING RAILWAY REACTION REALIZE RECEIVER RECENTLY RECOVERY REGIONAL REGISTER RELATION RELATIVE RELEASE RELIGION REMEMBER REMINDER REMOVAL REPEATED REPUBLIC REQUEST RESERVED RESIDENT RESISTOR RESOURCE RESPECT RESPOND RETAINED REVEALED REVISION RHYTHMIC RIGHTEOUS ROLLOVER ROMANTIC ROTATION ROUGHLY ROUTINE ROYALTY RUBBISH RUGGED SACRED SADNESS SAFETY SAILING SANDWICH SATISFY SATURDAY SCENERY SCHEDULE SCHOLAR SCIENCE SCISSORS SCRAMBLE SCRATCH SCREENING SCULPTOR SECURITY SELECTION SEMINAR SENATOR SEPARATE SEQUENCE SERGEANT SERIES SERIOUS SERVANT SERVICE SESSION SETTING SEVERAL SHADOW SHAMPOO SHELTER SHERIFF SHINING SHIPMENT SHIPPING SHIRT SHOCKING SHOOTING SHOPPING SHORTAGE SHOULDER SHOWER SIDEWALK SIDEWAYS SIGNATURE SILENCE SILICON SIMILAR SIMPLE SINGING SINGLE SISTER SITUATION SKELETON SKILLED SKIPPING SLIGHTLY SLIPPERY SMOKING SMOOTH SNOWING SOCIAL SOCIETY SOFTWARE SOLDIER SOLICIT SOLID SOLUTION SOMEBODY SOMEHOW SOMETIME SOMEWHAT SOUTHERN SPEAKER SPECIAL SPECIFIC SPECTRUM SPINNING SPIRIT SPLENDID SPOKESMAN SPONSOR SPORTING SPOTLIGHT SPREAD SPRING SQUARED STADIUM STAFFING STAGE STAIRS STANDARD STANDING STARING STARTING STARVATION STATION STATUE STATUS STEALING STEAMER STEERING STEPPING STICKING STIFF STOMACH STOPPING STORAGE STOREY STORM STRAIGHT STRANGE STRATEGY STREAM STREET STRENGTH STRETCH STRIKE STRING STRIP STRONG STRUCK STRUCTURE STRUGGLE STUDENT STUDIO STUDY STUFF STUPID STURDY STYLE SUBJECT SUBMIT SUBSTANCE SUCCESS SUDDEN SUFFER SUGAR SUGGEST SUICIDE SUMMER SUMMIT SUPPLY SUPPORT SUPPOSE SUPREME SURELY SURFACE SURGEON SURGERY SURPRISE SURROUND SURVEY SURVIVE SUSPECT SUSPEND SWALLOW SWEAR SWEAT SWEEP SWEET SWIM SWING SWITCH SWORD SYMBOL SYMPATHY SYSTEM TABLE TACKLE TACTIC TAILOR TAKING TALENT TALK TALL TANK TAPE TARGET TASK TASTE TAXI TEACH TEAM TEAR TECHNICAL TEENAGER TELEPHONE TELESCOPE TELEVISION TELLING TEMPER TEMPLE TEMPORARY TENDENCY TENNIS TENSION TERRIBLE TERRITORY TERROR TERRY TEST TEXT THANK THEATER THEME THEORY THERAPY THEREFORE THICK THIEF THIGH THIN THING THINK THIRST THIRTY THOMAS THOUGH THREAD THREAT THROAT THROUGH THROW THUMB THUNDER TICKET TIGER TIGHT TILE TILL TIMBER TIME TIMING TISSUE TITLE TOBACCO TODAY TOGETHER TOILET TOLERANCE TOMATO TOMORROW TONE TONGUE TONIGHT TONS TOOTH TOPIC TORCH TOTAL TOUCH TOUGH TOUR TOURIST TOWARD TOWEL TOWER TOWN TOY TRACK TRACTOR TRADE TRAFFIC TRAGEDY TRAIL TRAIN TRAINING TRAITOR TRANSFER TRANSPORT TRAP TRAVEL TRAY TREASURE TREAT TREATY TREE TREND TRIAL TRIBE TRICK TRIP TRIUMPH TROOP TROUBLE TROUSERS TRUCK TRUMPET TRUNK TRUST TRUTH TRYING TUBE TUESDAY TUNE TUNNEL TURKEY TURN TWELVE TWENTY TWICE TWIN TWIST TYPE TYPICAL UGLY ULTIMATE UMBRELLA UNABLE UNCLE UNCONSCIOUS UNDER UNDERSTAND UNDERTAKE UNEMPLOYED UNFORTUNATE UNHAPPY UNIFORM UNION UNIQUE UNIT UNITED UNIVERSE UNIVERSITY UNKNOWN UNLESS UNLIKE UNLIKELY UNTIL UNUSUAL UPPER UPSET UPSTAIRS UPWARD URBAN URGENT USAGE USEFUL USER USUAL UTILITY VACATION VACUUM VAGUE VALLEY VALUABLE VALUE VALVE VARIATION VARIETY VARIOUS VARY VAST VEGETABLE VEHICLE VENTURE VERSION VERTICAL VERY VESSEL VETERAN VIA VICTIM VICTORY VIDEO VIEW VILLAGE VIOLENCE VIOLENT VIRTUAL VIRUS VISIBLE VISION VISIT VISITOR VISUAL VITAL VOICE VOLUME VOLUNTARY VOTE VULNERABLE WAGE WAGON WAIST WAIT WAKE WALK WALL WANDER WANT WAR WARM WARN WASH WASTE WATCH WATER WAVE WAX WAY WEAK WEALTH WEAPON WEAR WEATHER WEAVE WEB WEDDING WEDNESDAY WEED WEEK WEEKEND WEIGH WEIGHT WELCOME WELFARE WELL WEST WESTERN WET WHALE WHAT WHEAT WHEEL WHEN WHERE WHETHER WHICH WHILE WHISPER WHISTLE WHITE WHO WHOLE WHOM WHOSE WHY WICKED WIDE WIDOW WIDTH WIFE WILD WILL WIN WIND WINDOW WINE WING WINNER WINTER WIRE WISDOM WISE WISH WITH WITHDRAW WITHIN WITHOUT WITNESS WOLF WOMAN WONDER WOOD WOOL WORD WORK WORKER WORKING WORLD WORRY WORSHIP WORTH WOULD WOUND WRAP WRIST WRITE WRITER WRITING WRONG YARD YEAR YELLOW YESTERDAY YIELD YOUNG YOUR YOURSELF YOUTH ZERO ZONE ZOOLOGY
+    `;
 
-    // --- STATE ---
-    let phase = 1; 
+    // --- APP VARIABLES ---
+    let phase = 1;
     let inputs = { len: 0, v1: 0, v2: 0, s1: '', s2: '' };
     let tapCount = 0;
     let tapTimer = null;
-    let dictionary = {};
+    
+    // Separate dictionaries for sorting logic
+    let priorityDict = {}; // Layer 1 (Common)
+    let backupDict = {};   // Layer 2 (Huge)
 
-    // --- UI ---
     const status = document.getElementById('status');
+    const dictStatus = document.getElementById('dict-status');
     const zones = document.querySelectorAll('.shape-zone');
-    const revealLayer = document.getElementById('reveal-layer');
+    const resetBtn = document.getElementById('reset-btn');
 
-    // --- 1. INIT ---
+    // --- INITIALIZATION ---
     async function init() {
-        status.innerText = "Loading Smart Database...";
+        // 1. Load Priority Dict immediately
+        parseWords(CORE_WORDS, priorityDict);
+        
+        // 2. Fetch Huge Dict in background
         try {
-            // REVERTED TO 20K COMMON LIST (Removes 'ABBACIES', keeps 'INSIGHTS')
-            const res = await fetch('https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-20000-english-no-swears.txt');
+            const res = await fetch(CONFIG.dictUrl);
             const text = await res.text();
-            
-            // PROCESS COMMON WORDS
-            text.split('\n').forEach(word => addToDict(word));
-
-            // INJECT MANUAL WORDS (For Countries/Planets)
-            MANUAL_INJECTION.forEach(word => addToDict(word));
-            
-            status.innerText = "Ready";
-
-        } catch(e) {
-            status.innerText = "Offline Mode (Safety Net Only)";
-            MANUAL_INJECTION.forEach(word => addToDict(word));
+            parseWords(text, backupDict);
+            dictStatus.innerText = "ONLINE (50k+ Words)";
+            dictStatus.style.color = "#0f0";
+        } catch (e) {
+            dictStatus.innerText = "OFFLINE (Safety Mode)";
+            dictStatus.style.color = "#555";
         }
     }
 
-    function addToDict(word) {
-        word = word.trim().toUpperCase();
-        // FILTER: 6+ LETTERS ONLY
-        if(word.length < MIN_WORD_LEN || word.length > MAX_WORD_LEN) return;
+    function parseWords(text, targetDict) {
+        // Split by any whitespace or comma
+        const words = text.split(/[\s,]+/);
+        
+        words.forEach(w => {
+            const word = w.trim().toUpperCase();
+            // FILTER: 6 to 14 letters
+            if (word.length < CONFIG.minLen || word.length > CONFIG.maxLen) return;
 
-        const v = getVowels(word);
-        let v1 = v[0] || 0; 
-        let v2 = v[1] || 0;
+            // Generate Key
+            const v = getVowels(word);
+            let v1 = v[0] || 0;
+            let v2 = v[1] || 0;
+            const s1 = getShape(word[0]);
+            const s2 = getShape(word[word.length-1]);
+            const len = word.length;
+            
+            const key = `${len}-${v1}-${v2}-${s1}-${s2}`;
 
-        const s1 = getShape(word[0]);
-        const s2 = getShape(word[word.length-1]);
-        const len = word.length;
-
-        const key = `${len}-${v1}-${v2}-${s1}-${s2}`;
-        if (!dictionary[key]) dictionary[key] = [];
-        // Only add if not duplicate
-        if (!dictionary[key].includes(word)) dictionary[key].push(word);
+            if (!targetDict[key]) targetDict[key] = [];
+            // Dedup
+            if (!targetDict[key].includes(word)) targetDict[key].push(word);
+        });
     }
 
-    // --- 2. INPUT ROUTER ---
+    // --- INPUT ROUTER ---
     document.getElementById('input-layer').addEventListener('touchstart', (e) => {
-        if(navigator.vibrate) navigator.vibrate(15);
-
+        if (navigator.vibrate) navigator.vibrate(10);
+        
         if (phase <= 3) {
             handleTap();
-        } else {
-            const target = e.target;
-            if(target.classList.contains('shape-zone')) {
-                handleShape(target.getAttribute('data-shape'));
-            }
+        } else if (e.target.classList.contains('shape-zone')) {
+            handleShape(e.target.dataset.shape);
         }
     });
 
-    // --- 3. RHYTHM LOGIC ---
+    // --- LOGIC LOOP ---
     function handleTap() {
         clearTimeout(tapTimer);
         tapCount++;
-        status.innerText = `Count ${tapCount}`;
+        status.innerText = `Count: ${tapCount}`;
         status.style.color = "#fff";
-        
-        tapTimer = setTimeout(lockTap, TAP_TIMEOUT);
+        tapTimer = setTimeout(lockTap, CONFIG.tapTime);
     }
 
     function lockTap() {
-        if(navigator.vibrate) navigator.vibrate([40, 40]); 
+        if (navigator.vibrate) navigator.vibrate([30, 30]);
 
         if (phase === 1) {
             inputs.len = tapCount;
-            if(inputs.len < MIN_WORD_LEN && inputs.len > 0) {
-                status.innerText = `Warning: <6 Letters`;
-            } else {
-                status.innerText = `Length Locked`;
-            }
+            // Check for valid length
+            if(inputs.len > 0 && inputs.len < CONFIG.minLen) status.innerText = "Warning: Too Short (<6)";
+            else status.innerText = "Length Locked";
             phase = 2;
-        } 
-        else if (phase === 2) {
+        } else if (phase === 2) {
             inputs.v1 = tapCount;
-            status.innerText = `Vowel 1 Locked`;
+            status.innerText = "Vowel 1 Locked";
             phase = 3;
-        }
-        else if (phase === 3) {
+        } else if (phase === 3) {
             inputs.v2 = tapCount;
-            status.innerText = `Think of First Letter (Capital)`;
+            status.innerText = "Think of First Letter (Capital)";
             phase = 4;
-            zones.forEach(z => { z.style.opacity = 0.3; z.style.pointerEvents = "auto"; });
+            showZones();
         }
         tapCount = 0;
-        status.style.color = "#888";
+        status.style.color = "#dim";
     }
 
-    // --- 4. SHAPE LOGIC ---
     function handleShape(shape) {
         if (phase === 4) {
             inputs.s1 = shape;
-            phase = 5;
             status.innerText = "Think of Last Letter (Capital)";
-        } 
-        else if (phase === 5) {
+            phase = 5;
+        } else if (phase === 5) {
             inputs.s2 = shape;
             reveal();
         }
     }
 
-    // --- 5. REVEAL LOGIC ---
+    // --- REVEAL ENGINE (DOUBLE LAYER) ---
     function reveal() {
         const key = `${inputs.len}-${inputs.v1}-${inputs.v2}-${inputs.s1}-${inputs.s2}`;
-        const matches = dictionary[key];
         
         const pWord = document.getElementById('primary-word');
         const aWord = document.getElementById('alt-words');
-
-        if (matches && matches.length > 0) {
-            pWord.innerText = matches[0];
-            // Show up to 5 alternatives
-            aWord.innerText = matches.length > 1 ? matches.slice(1,6).join("   ") : "";
-        } else {
-            pWord.innerText = "NO MATCH";
-            aWord.innerText = `IN: ${inputs.len} - ${inputs.v1} - ${inputs.v2} (${inputs.s1}/${inputs.s2})`;
+        
+        let results = [];
+        
+        // CHECK LAYER 1 (Priority/Common)
+        if (priorityDict[key]) {
+            results = [...priorityDict[key]];
         }
         
-        revealLayer.style.display = 'flex';
+        // CHECK LAYER 2 (Backup/Huge) - Append unique new finds
+        if (backupDict[key]) {
+            backupDict[key].forEach(w => {
+                if (!results.includes(w)) results.push(w);
+            });
+        }
+
+        if (results.length > 0) {
+            pWord.innerText = results[0]; // Best match (Priority Wins)
+            // Show up to 5 alternatives
+            aWord.innerText = results.length > 1 ? results.slice(1, 6).join("   ") : "";
+        } else {
+            pWord.innerText = "NO MATCH";
+            aWord.innerText = `IN: ${inputs.len}-${inputs.v1}-${inputs.v2} (${inputs.s1}/${inputs.s2})`;
+        }
+
+        document.getElementById('reveal-layer').style.display = 'flex';
+        hideZones();
+    }
+
+    // --- UTILS & HELPERS ---
+    function showZones() {
+        zones.forEach(z => { z.style.opacity = 0.3; z.style.pointerEvents = "auto"; });
+    }
+    function hideZones() {
         zones.forEach(z => { z.style.opacity = 0; z.style.pointerEvents = "none"; });
     }
 
-    // --- 6. GESTURES & RESET ---
-    // Swipe Left Skip (Phase 3)
+    // Swipe Skip Logic (For Vowel 2)
     let startX = 0;
     document.addEventListener('touchstart', e => startX = e.touches[0].clientX);
     document.addEventListener('touchend', e => {
-        let endX = e.changedTouches[0].clientX;
-        if (startX - endX > 80 && phase === 3) {
+        if (startX - e.changedTouches[0].clientX > 80 && phase === 3) {
             clearTimeout(tapTimer);
             inputs.v2 = 0; phase = 4;
-            if(navigator.vibrate) navigator.vibrate([40, 40]);
-            status.innerText = "Skipped. Shape Mode.";
-            zones.forEach(z => { z.style.opacity = 0.3; z.style.pointerEvents = "auto"; });
+            if (navigator.vibrate) navigator.vibrate([30, 30]);
+            status.innerText = "Skipped V2. Shape Mode.";
+            showZones();
         }
     });
 
-    document.getElementById('reset-btn').addEventListener('click', (e) => {
-        e.stopPropagation(); location.reload();
-    });
+    resetBtn.addEventListener('click', (e) => { e.stopPropagation(); location.reload(); });
 
-    // --- HELPERS ---
+    // SHAPE DEFINITIONS (STRICT CAPITALS)
     function getShape(char) {
-        if (!char) return "S";
-        const c = char.toUpperCase(); 
-        if ("COSU".includes(c)) return "C"; // Curved
-        if ("BDGJPQR".includes(c)) return "M"; // Mixed
-        return "S"; // Straight
+        const c = char.toUpperCase();
+        if ("COSU".includes(c)) return "C";      // Curved
+        if ("BDGJPQR".includes(c)) return "M";   // Mixed
+        return "S";                              // Straight
     }
+    
     function getVowels(word) {
         const vowels = "AEIOU";
         let idx = [];
-        [...word.toUpperCase()].forEach((c, i) => { if (vowels.includes(c)) idx.push(i + 1); });
+        [...word].forEach((c, i) => { if (vowels.includes(c)) idx.push(i + 1); });
         return idx;
     }
 

@@ -12,7 +12,6 @@
             --bg-color: #000000;
             --text-primary: #ffffff;
             --text-secondary: #888888;
-            --accent: #333333;
         }
 
         * { box-sizing: border-box; touch-action: none; user-select: none; -webkit-tap-highlight-color: transparent; }
@@ -35,25 +34,23 @@
             display: flex; flex-direction: column;
         }
 
-        /* SHAPE ZONES (Minimalist Lines) */
+        /* SHAPE ZONES */
         .shape-zone {
             flex: 1; width: 100%;
             display: flex; align-items: center; justify-content: center;
             font-size: 14px; letter-spacing: 2px;
             color: var(--text-secondary);
-            opacity: 0; /* Hidden by default */
-            transition: opacity 0.4s ease, background 0.2s;
+            opacity: 0; 
+            transition: opacity 0.4s ease;
             pointer-events: none;
             border-bottom: 1px solid #111;
         }
-        
-        /* Last zone no border */
         .shape-zone:last-child { border-bottom: none; }
 
-        /* --- FEEDBACK STATUS --- */
+        /* --- STATUS TEXT --- */
         #status {
             position: absolute; 
-            bottom: 120px; /* High enough to avoid thumbs */
+            bottom: 120px; 
             left: 0; width: 100%;
             text-align: center; 
             color: var(--text-secondary); 
@@ -64,101 +61,86 @@
             transition: color 0.3s ease;
         }
 
-        /* --- RESULT LAYER (The Reveal) --- */
+        /* --- REVEAL LAYER --- */
         #reveal-layer {
             position: absolute; top: 0; left: 0;
             width: 100%; height: 100%;
             background: var(--bg-color);
-            display: none; /* Hidden */
+            display: none;
             flex-direction: column;
             align-items: center; justify-content: center;
             z-index: 20;
-            padding: 40px;
+            padding: 20px;
         }
 
         .label {
-            font-size: 12px; 
-            color: var(--text-secondary); 
-            text-transform: uppercase; 
-            letter-spacing: 2px;
+            font-size: 12px; color: var(--text-secondary); 
+            text-transform: uppercase; letter-spacing: 2px;
             margin-bottom: 20px;
         }
 
         #primary-word {
-            font-size: 3.5rem; 
-            font-weight: 700; 
-            text-transform: uppercase;
-            text-align: center; 
-            color: var(--text-primary); 
-            letter-spacing: 1px;
-            margin-bottom: 10px;
-            line-height: 1.1;
+            font-size: 3.2rem; font-weight: 700; text-transform: uppercase;
+            text-align: center; color: var(--text-primary); 
+            letter-spacing: 1px; margin-bottom: 15px; line-height: 1.1;
         }
 
         #alt-words { 
-            font-size: 1.1rem; 
-            color: var(--text-secondary); 
-            text-align: center; 
-            max-width: 100%; 
-            line-height: 1.6; 
-            font-weight: 300;
+            font-size: 1rem; color: var(--text-secondary); 
+            text-align: center; max-width: 95%; 
+            line-height: 1.5; font-weight: 300;
         }
 
-        /* --- MODERN RESET BUTTON --- */
+        /* --- RESET BUTTON --- */
         #reset-container {
-            position: absolute;
-            bottom: 50px;
-            left: 0; width: 100%;
+            position: absolute; bottom: 50px; left: 0; width: 100%;
             display: flex; justify-content: center;
         }
-
         #reset-btn {
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(10px);
             padding: 14px 40px;
-            border-radius: 50px; /* Pill shape */
-            font-size: 13px;
-            font-weight: 600;
-            letter-spacing: 1.5px;
-            color: #fff;
-            text-transform: uppercase;
+            border-radius: 50px;
+            font-size: 13px; font-weight: 600; letter-spacing: 1.5px;
+            color: #fff; text-transform: uppercase;
             box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            transition: transform 0.1s, background 0.2s;
         }
-
-        #reset-btn:active {
-            transform: scale(0.95);
-            background: rgba(255, 255, 255, 0.2);
-        }
+        #reset-btn:active { background: rgba(255, 255, 255, 0.2); }
 
     </style>
 </head>
 <body>
 
     <div id="input-layer">
-        <div class="shape-zone" id="top-zone" data-shape="S">STRAIGHT</div>
-        <div class="shape-zone" id="mid-zone" data-shape="C">CURVED</div>
-        <div class="shape-zone" id="bot-zone" data-shape="M">MIXED</div>
+        <div class="shape-zone" id="top-zone" data-shape="S">STRAIGHT (A, E, F, H...)</div>
+        <div class="shape-zone" id="mid-zone" data-shape="C">CURVED (C, O, S, U)</div>
+        <div class="shape-zone" id="bot-zone" data-shape="M">MIXED (B, D, G, P, R...)</div>
     </div>
 
-    <div id="status">System Ready</div>
+    <div id="status">Initializing...</div>
 
     <div id="reveal-layer">
         <div class="label">Result</div>
         <div id="primary-word">...</div>
         <div id="alt-words"></div>
-
-        <div id="reset-container">
-            <div id="reset-btn">Start Over</div>
-        </div>
+        <div id="reset-container"><div id="reset-btn">Start Over</div></div>
     </div>
 
 <script>
-    // --- CONFIGURATION ---
-    const TAP_TIMEOUT = 2500; // 2.5 Seconds
-    const MIN_WORD_LEN = 6;   // Force 6+ letters for accuracy
-    const MAX_WORD_LEN = 14;
+    // --- CONFIG ---
+    const TAP_TIMEOUT = 2500; 
+    const MIN_WORD_LEN = 6; // STRICT FILTER: 6+ LETTERS ONLY
+    const MAX_WORD_LEN = 15;
+
+    // --- MANUAL SAFETY NET ---
+    const MANUAL_INJECTION = [
+        "PHILIPPINES", "SINGAPORE", "MALAYSIA", "INDONESIA", "THAILAND", 
+        "AUSTRALIA", "AMERICA", "SWITZERLAND", "ARGENTINA", "PORTUGAL",
+        "JUPITER", "SATURN", "NEPTUNE", "MERCURY", "URANUS",
+        "ELEPHANT", "GIRAFFE", "KANGAROO", "CHIMPANZEE", "CROCODILE",
+        "DIAMOND", "EMERALD", "SAPPHIRE", "AMETHYST"
+    ];
 
     // --- STATE ---
     let phase = 1; 
@@ -167,62 +149,73 @@
     let tapTimer = null;
     let dictionary = {};
 
-    // --- UI ELEMENTS ---
+    // --- UI ---
     const status = document.getElementById('status');
     const zones = document.querySelectorAll('.shape-zone');
     const revealLayer = document.getElementById('reveal-layer');
 
-    // --- 1. INITIALIZE ---
+    // --- 1. INIT ---
     async function init() {
-        status.innerText = "Loading Library...";
+        status.innerText = "Downloading Dictionary (Large)...";
         try {
-            // Using 20k word list
-            const res = await fetch('https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-20000-english-no-swears.txt');
-            const text = await res.text();
+            // LOAD HUGE DICTIONARY (Words Alpha)
+            const res = await fetch('https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt');
             
-            // Build Dictionary
-            text.split('\n').forEach(word => {
+            // READ STREAM FOR PROGRESS (Optional polish, keeping simple text for now)
+            const text = await res.text();
+            status.innerText = "Processing Data...";
+
+            // SPLIT & FILTER
+            const rawWords = text.split('\r\n'); // Usually CRLF in this file
+            let count = 0;
+
+            rawWords.forEach(word => {
+                // HANDLE NEWLINE VARIATIONS
                 word = word.trim().toUpperCase();
                 
-                // Filter Logic: Must be 6 to 14 letters
+                // FILTER: MUST BE 6+ LETTERS
                 if(word.length < MIN_WORD_LEN || word.length > MAX_WORD_LEN) return;
-
-                const v = getVowels(word);
-                let v1 = v[0] || 0; 
-                let v2 = v[1] || 0;
-
-                const s1 = getShape(word[0]);
-                const s2 = getShape(word[word.length-1]);
-                const len = word.length;
-
-                // Key: Len-V1-V2-S1-S2
-                const key = `${len}-${v1}-${v2}-${s1}-${s2}`;
                 
-                if (!dictionary[key]) dictionary[key] = [];
-                if (!dictionary[key].includes(word)) dictionary[key].push(word);
+                addToDict(word);
+                count++;
             });
+
+            // INJECT MANUAL WORDS
+            MANUAL_INJECTION.forEach(word => addToDict(word));
             
             status.innerText = "Ready";
+            console.log(`Loaded ${count} words.`);
+
         } catch(e) {
-            status.innerText = "Connection Error";
+            status.innerText = "Offline Mode (Safety Net Only)";
+            MANUAL_INJECTION.forEach(word => addToDict(word));
         }
+    }
+
+    function addToDict(word) {
+        const v = getVowels(word);
+        let v1 = v[0] || 0; 
+        let v2 = v[1] || 0;
+
+        const s1 = getShape(word[0]);
+        const s2 = getShape(word[word.length-1]);
+        const len = word.length;
+
+        const key = `${len}-${v1}-${v2}-${s1}-${s2}`;
+        if (!dictionary[key]) dictionary[key] = [];
+        if (!dictionary[key].includes(word)) dictionary[key].push(word);
     }
 
     // --- 2. INPUT ROUTER ---
     document.getElementById('input-layer').addEventListener('touchstart', (e) => {
-        // Haptic
         if(navigator.vibrate) navigator.vibrate(15);
 
-        // Logic Split
         if (phase <= 3) {
-            // Phases 1, 2, 3: Rhythm Tapping
             handleTap();
         } else {
-            // Phases 4, 5: Shape Zones
             const target = e.target;
             if(target.classList.contains('shape-zone')) {
-                const shape = target.getAttribute('data-shape');
-                handleShape(shape);
+                handleShape(target.getAttribute('data-shape'));
             }
         }
     });
@@ -231,13 +224,10 @@
     function handleTap() {
         clearTimeout(tapTimer);
         tapCount++;
-        
         status.innerText = `Count ${tapCount}`;
         status.style.color = "#fff";
         
-        tapTimer = setTimeout(() => {
-            lockTap();
-        }, TAP_TIMEOUT);
+        tapTimer = setTimeout(lockTap, TAP_TIMEOUT);
     }
 
     function lockTap() {
@@ -245,11 +235,10 @@
 
         if (phase === 1) {
             inputs.len = tapCount;
-            // Guard: If they tapped less than 6, warn them (or just proceed)
-            if(inputs.len < 6 && inputs.len > 0) {
-                 status.innerText = `Warning: ${inputs.len} is short`;
+            if(inputs.len < MIN_WORD_LEN && inputs.len > 0) {
+                status.innerText = `Warning: <6 Letters`;
             } else {
-                 status.innerText = `Length Locked`;
+                status.innerText = `Length Locked`;
             }
             phase = 2;
         } 
@@ -260,16 +249,10 @@
         }
         else if (phase === 3) {
             inputs.v2 = tapCount;
-            status.innerText = `Select First Letter Shape`;
+            status.innerText = `Think of First Letter (Capital)`;
             phase = 4;
-            
-            // Show Zones
-            zones.forEach(z => {
-                z.style.opacity = 0.3; // Minimal visibility
-                z.style.pointerEvents = "auto";
-            });
+            zones.forEach(z => { z.style.opacity = 0.3; z.style.pointerEvents = "auto"; });
         }
-        
         tapCount = 0;
         status.style.color = "#888";
     }
@@ -279,7 +262,7 @@
         if (phase === 4) {
             inputs.s1 = shape;
             phase = 5;
-            status.innerText = "Select Last Letter Shape";
+            status.innerText = "Think of Last Letter (Capital)";
         } 
         else if (phase === 5) {
             inputs.s2 = shape;
@@ -297,60 +280,43 @@
 
         if (matches && matches.length > 0) {
             pWord.innerText = matches[0];
-            
-            if (matches.length > 1) {
-                // Clean list with no bullets
-                aWord.innerText = matches.slice(1,6).join("   ");
-            } else {
-                aWord.innerText = "";
-            }
+            // Limit shown alternatives to 5 to keep UI clean
+            aWord.innerText = matches.length > 1 ? matches.slice(1,6).join("   ") : "";
         } else {
             pWord.innerText = "NO MATCH";
-            aWord.innerText = `Input: ${inputs.len} ${inputs.v1} ${inputs.v2}`;
+            aWord.innerText = `IN: ${inputs.len} - ${inputs.v1} - ${inputs.v2} (${inputs.s1}/${inputs.s2})`;
         }
         
         revealLayer.style.display = 'flex';
-        
-        // Hide zones
-        zones.forEach(z => {
-            z.style.opacity = 0;
-            z.style.pointerEvents = "none";
-        });
+        zones.forEach(z => { z.style.opacity = 0; z.style.pointerEvents = "none"; });
     }
 
     // --- 6. GESTURES & RESET ---
-    
-    // Swipe Left Skip (Phase 3 only)
     let startX = 0;
     document.addEventListener('touchstart', e => startX = e.touches[0].clientX);
     document.addEventListener('touchend', e => {
         let endX = e.changedTouches[0].clientX;
         if (startX - endX > 80 && phase === 3) {
             clearTimeout(tapTimer);
-            inputs.v2 = 0; 
-            phase = 4;
+            inputs.v2 = 0; phase = 4;
             if(navigator.vibrate) navigator.vibrate([40, 40]);
             status.innerText = "Skipped. Shape Mode.";
-            zones.forEach(z => {
-                z.style.opacity = 0.3;
-                z.style.pointerEvents = "auto";
-            });
+            zones.forEach(z => { z.style.opacity = 0.3; z.style.pointerEvents = "auto"; });
         }
     });
 
-    // Reset Button
     document.getElementById('reset-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        location.reload();
+        e.stopPropagation(); location.reload();
     });
 
     // --- HELPERS ---
     function getShape(char) {
         if (!char) return "S";
-        const c = char.toUpperCase();
-        if ("COSU".includes(c)) return "C"; 
-        if ("BDGJPQR".includes(c)) return "M"; 
-        return "S"; 
+        const c = char.toUpperCase(); 
+        // CAPITAL LETTER LOGIC
+        if ("COSU".includes(c)) return "C"; // Curved
+        if ("BDGJPQR".includes(c)) return "M"; // Mixed (Straight + Curve)
+        return "S"; // Straight (A, E, F, H, I, K, L, M, N, T, V, W, X, Y, Z)
     }
     function getVowels(word) {
         const vowels = "AEIOU";
@@ -359,9 +325,7 @@
         return idx;
     }
 
-    // Run
     init();
-
 </script>
 </body>
 </html>

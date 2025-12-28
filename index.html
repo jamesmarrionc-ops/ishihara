@@ -8,7 +8,7 @@
     <title>Locked</title>
     <style>
         /* --- CORE STYLES --- */
-        :root { --bg: #000; --text: #fff; --dim: #555; --stealth: #333; }
+        :root { --bg: #000; --text: #fff; }
         
         * { 
             box-sizing: border-box; 
@@ -20,7 +20,6 @@
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
             background-color: var(--bg); color: var(--text);
-            /* System font to look like native OS */
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             overflow: hidden; position: fixed;
         }
@@ -42,19 +41,19 @@
         
         .shape-zone {
             flex: 1; display: flex; align-items: center; justify-content: center;
-            font-size: 14px; letter-spacing: 2px; color: #222; /* Very dark text */
+            font-size: 14px; letter-spacing: 2px; color: #222;
             border-bottom: 1px solid #111; opacity: 0; transition: opacity 0.3s;
         }
         .shape-zone:last-child { border-bottom: none; }
 
-        /* --- STATUS TEXT (Guides) --- */
+        /* --- STATUS TEXT --- */
         #status {
             position: absolute; bottom: 15%; left: 0; width: 100%;
             text-align: center; color: #333; font-size: 10px; letter-spacing: 1px;
             pointer-events: none; transition: color 0.2s;
         }
 
-        /* --- FILTER LAYER (Stealth Peek) --- */
+        /* --- FILTER LAYER --- */
         #filter-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg); display: none;
@@ -63,20 +62,16 @@
         }
         
         #filter-letter {
-            font-size: 2rem; 
-            font-weight: 300; 
-            color: #222; /* Barely visible dark grey */
-            margin-bottom: 0px;
+            font-size: 2rem; font-weight: 300; color: #222; margin-bottom: 0px;
         }
         
         #filter-instructions {
             display: flex; width: 100%; justify-content: space-between; padding: 0 40px;
-            font-size: 10px; color: #111; /* Almost invisible */
-            text-transform: uppercase; letter-spacing: 2px;
+            font-size: 10px; color: #111; text-transform: uppercase; letter-spacing: 2px;
             position: absolute; bottom: 40px;
         }
 
-        /* --- REVEAL LAYER (Locked Phone Look) --- */
+        /* --- REVEAL LAYER --- */
         #reveal-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: #000; /* Pure Black */
@@ -85,29 +80,21 @@
             z-index: 20; padding: 20px;
         }
 
-        /* THE WORD - Disguised as Date/Notification */
+        /* THE WORD - Disguised */
         #primary-word { 
-            font-size: 1.2rem; 
-            font-weight: 400; 
-            color: #333; /* Dark Grey - Looks like dim standby text */
-            text-align: center; 
-            letter-spacing: 1px;
-            text-transform: uppercase;
+            font-size: 1.2rem; font-weight: 400; color: #333;
+            text-align: center; letter-spacing: 1px; text-transform: uppercase;
         }
         
-        /* Secondary candidates (if any) - Hidden unless needed */
+        /* Secondary candidates */
         #alt-words { 
-            font-size: 0.7rem; 
-            color: #111; /* Extremely faint */
-            text-align: center; 
-            margin-top: 20px;
+            font-size: 0.7rem; color: #111; text-align: center; margin-top: 20px;
         }
         
         /* INVISIBLE RESET BUTTON */
         #reset-zone {
             position: absolute; bottom: 0; left: 0; width: 100%; height: 15%;
-            background: transparent; /* Invisible */
-            z-index: 30;
+            background: transparent; z-index: 30;
         }
     </style>
 </head>
@@ -134,10 +121,10 @@
     <div id="reveal-layer">
         <div id="primary-word">...</div>
         <div id="alt-words"></div>
-        <div id="reset-zone"></div> </div>
+        <div id="reset-zone"></div>
+    </div>
 
 <script>
-    // --- PREVENT ZOOM ---
     document.addEventListener('dblclick', function(event) { event.preventDefault(); }, { passive: false });
 
     // --- CONFIGURATION ---
@@ -148,14 +135,14 @@
         dictUrl: 'https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt'
     };
 
-    // --- CORE DICTIONARY (OFFLINE PRIORITY) ---
+    // --- CORE DICTIONARY (UPDATED WITH AARDVARK) ---
     const CORE_WORDS = `
     JANUARY FEBRUARY MARCH APRIL MAY JUNE JULY AUGUST SEPTEMBER OCTOBER NOVEMBER DECEMBER
     MONDAY TUESDAY WEDNESDAY THURSDAY FRIDAY SATURDAY SUNDAY
     SUMMER WINTER AUTUMN SPRING SEASON HOLIDAY VACATION FESTIVAL
     YELLOW ORANGE PURPLE VIOLET INDIGO SILVER GOLDEN BRONZE COPPER CHROME MAGENTA SCARLET CRIMSON MAROON TURQUOISE EMERALD AQUAMARINE LAVENDER BEIGE BLONDE
     AFGHANISTAN ALBANIA ALGERIA ANDORRA ANGOLA ANTIGUA ARGENTINA ARMENIA AUSTRALIA AUSTRIA AZERBAIJAN BAHAMAS BAHRAIN BANGLADESH BARBADOS BELARUS BELGIUM BELIZE BENIN BHUTAN BOLIVIA BOSNIA BOTSWANA BRAZIL BRUNEI BULGARIA BURKINA BURUNDI CAMBODIA CAMEROON CANADA VERDE CENTRAL CHAD CHILE CHINA COLOMBIA COMOROS CONGO COSTA CROATIA CUBA CYPRUS CZECH DENMARK DJIBOUTI DOMINICA DOMINICAN ECUADOR EGYPT SALVADOR EQUATORIAL ERITREA ESTONIA ESWATINI ETHIOPIA FIJI FINLAND FRANCE GABON GAMBIA GEORGIA GERMANY GHANA GREECE GRENADA GUATEMALA GUINEA GUYANA HAITI HONDURAS HUNGARY ICELAND INDIA INDONESIA IRAN IRAQ IRELAND ISRAEL ITALY JAMAICA JAPAN JORDAN KAZAKHSTAN KENYA KIRIBATI KOREA KUWAIT KYRGYZSTAN LATVIA LEBANON LESOTHO LIBERIA LIBYA LIECHTENSTEIN LITHUANIA LUXEMBOURG MADAGASCAR MALAWI MALAYSIA MALDIVES MALI MALTA MARSHALL MAURITANIA MAURITIUS MEXICO MICRONESIA MOLDOVA MONACO MONGOLIA MONTENEGRO MOROCCO MOZAMBIQUE MYANMAR NAMIBIA NAURU NEPAL NETHERLANDS ZEALAND NICARAGUA NIGER NIGERIA MACEDONIA NORWAY OMAN PAKISTAN PALAU PALESTINE PANAMA PAPUA PARAGUAY PERU PHILIPPINES POLAND PORTUGAL QATAR ROMANIA RUSSIA RWANDA SAINT SAMOA MARINO SAUDI SENEGAL SERBIA SEYCHELLES LEONE SINGAPORE SLOVAKIA SLOVENIA SOLOMON SOMALIA AFRICA SPAIN LANKA SUDAN SURINAME SWEDEN SWITZERLAND SYRIA TAIWAN TAJIKISTAN TANZANIA THAILAND TIMOR TOGO TONGA TRINIDAD TUNISIA TURKEY TURKMENISTAN TUVALU UGANDA UKRAINE EMIRATES KINGDOM AMERICA URUGUAY UZBEKISTAN VANUATU VATICAN VENEZUELA VIETNAM YEMEN ZAMBIA ZIMBABWE
-    ANIMAL NATURE JUNGLE FOREST DESERT OCEAN MAMMAL REPTILE INSECT BADGER BEAVER BOBCAT BUFFALO CAMEL CHEETAH COYOTE COUGAR DONKEY DOLPHIN ELEPHANT FERRET FOX GIRAFFE GOPHER GORILLA HAMSTER HIPPOPOTAMUS HORSE HYENA JAGUAR KANGAROO LEMUR LEOPARD LION LLAMA MANATEE MEERKAT MONKEY MOOSE MOUSE NARWHAL OCELOT OTTER PANDA PANTHER PLATYPUS PORCUPINE POSSUM RABBIT RACCOON RHINOCEROS SHEEP SKUNK SLOTH SQUIRREL TIGER WALRUS WEASEL WHALE WOMBAT ZEBRA CONDOR CRANE EAGLE FALCON FLAMINGO GOOSE HAWK HERON HUMMINGBIRD OSTRICH PARROT PELICAN PENGUIN PIGEON RAVEN SEAGULL SPARROW STORK SWAN TOUCAN TURKEY VULTURE ANCHOVY BARRACUDA CATFISH CLOWNFISH GOLDFISH GUPPY JELLYFISH LOBSTER MARLIN OCTOPUS OYSTER PIRANHA SALMON SARDINE SEAHORSE SHARK SHRIMP SQUID STARFISH STINGRAY STURGEON SWORDFISH TROUT TUNA TURTLE ANTEATER ANTELOPE ARMADILLO BABOON CHAMELEON CHIMPANZEE CHIPMUNK COBRA CROCODILE DINOSAUR DRAGONFLY GAZELL GECKO HORNET IGUANA IMPALA JACKAL KOMODO LIZARD MAMMOTH MANTIS MOCKINGBIRD MONGOOSE MOSQUITO NEWT ORANGUTAN ORCA PEACOCK PYTHON RATTLESNAKE SALAMANDER SCORPION SERPENT SPIDER TERMITE TORTOISE VIPER WALLABY WARTHOG WASP WOLF WOLVERINE WOODPECKER
+    AARDVARK AARDWOLF ALPACA ANIMAL NATURE JUNGLE FOREST DESERT OCEAN MAMMAL REPTILE INSECT BADGER BEAVER BOBCAT BUFFALO CAMEL CHEETAH COYOTE COUGAR DONKEY DOLPHIN ELEPHANT FERRET FOX GIRAFFE GOPHER GORILLA HAMSTER HIPPOPOTAMUS HORSE HYENA JAGUAR KANGAROO LEMUR LEOPARD LION LLAMA MANATEE MEERKAT MONKEY MOOSE MOUSE NARWHAL OCELOT OTTER PANDA PANTHER PLATYPUS PORCUPINE POSSUM RABBIT RACCOON RHINOCEROS SHEEP SKUNK SLOTH SQUIRREL TIGER WALRUS WEASEL WHALE WOMBAT ZEBRA CONDOR CRANE EAGLE FALCON FLAMINGO GOOSE HAWK HERON HUMMINGBIRD OSTRICH PARROT PELICAN PENGUIN PIGEON RAVEN SEAGULL SPARROW STORK SWAN TOUCAN TURKEY VULTURE ANCHOVY BARRACUDA CATFISH CLOWNFISH GOLDFISH GUPPY JELLYFISH LOBSTER MARLIN OCTOPUS OYSTER PIRANHA SALMON SARDINE SEAHORSE SHARK SHRIMP SQUID STARFISH STINGRAY STURGEON SWORDFISH TROUT TUNA TURTLE ANTEATER ANTELOPE ARMADILLO BABOON CHAMELEON CHIMPANZEE CHIPMUNK COBRA CROCODILE DINOSAUR DRAGONFLY GAZELL GECKO HORNET IGUANA IMPALA JACKAL KOMODO LIZARD MAMMOTH MANTIS MOCKINGBIRD MONGOOSE MOSQUITO NEWT ORANGUTAN ORCA PEACOCK PYTHON RATTLESNAKE SALAMANDER SCORPION SERPENT SPIDER TERMITE TORTOISE VIPER WALLABY WARTHOG WASP WOLF WOLVERINE WOODPECKER
     GOOGLE AMAZON APPLE MICROSOFT SAMSUNG TOYOTA HONDA NISSAN FERRARI PORSCHE LAMBORGHINI MERCEDES BUGATTI TESLA SUZUKI YAMAHA KAWASAKI DUCATI BOEING AIRBUS ADIDAS REEBOK CONVERSE VANS GUCCI PRADA VERSACE ROLEX OMEGA CARTIER TIFFANY CANON NIKON SONY INTEL ORACLE CISCO ADOBE PEPSI SPRITE FANTA REDBULL NESCAFE STARBUCKS MCDONALDS BURGER PIZZA SUBWAY DOMINOS KFC WENDYS WALMART TARGET COSTCO IKEA NETFLIX DISNEY SPOTIFY TWITTER FACEBOOK INSTAGRAM TIKTOK LINKEDIN YOUTUBE TWITCH REDDIT
     DESCRIPTION IMAGINATION INFORMATION EDUCATION DEVELOPMENT RELATIONSHIP ORGANIZATION INTERNATIONAL ENVIRONMENTAL COMMUNICATION REPRESENTATIVE ADMINISTRATION RESPONSIBILITY
     DIRECTOR BEHAVIOR DISASTER DISORDER REGISTER RECEIVER DAUGHTER DISTANCE DISTRICT DELIVERY DECISION DOMESTIC DEADLINE DOCTRINE DATABASE DAYLIGHT
@@ -183,7 +170,10 @@
 
     // --- INITIALIZATION ---
     async function init() {
+        // 1. Load Core Words (Safe)
         parseWords(CORE_WORDS, priorityDict);
+        
+        // 2. Try Online Words (With Memory Protection)
         try {
             const res = await fetch(CONFIG.dictUrl);
             if (!res.ok) throw new Error("Net Err");
@@ -196,9 +186,11 @@
     }
 
     function parseWords(text, targetDict) {
+        // Uses regex to split words - handles both offline list and online list
         const words = text.split(/[\s,]+/);
         words.forEach(w => {
             const word = w.trim().toUpperCase();
+            // FILTER: Strict length check saves memory
             if (word.length < CONFIG.minLen || word.length > CONFIG.maxLen) return;
 
             const v = getVowels(word);
@@ -210,7 +202,13 @@
             
             const key = `${len}-${v1}-${v2}-${s1}-${s2}`;
             if (!targetDict[key]) targetDict[key] = [];
-            if (!targetDict[key].includes(word)) targetDict[key].push(word);
+            
+            // OPTIMIZATION: Don't store duplicates or extremely obscure duplicates if array gets too big
+            if (!targetDict[key].includes(word)) {
+                if(targetDict[key].length < 30) { // Safety cap for collision lists
+                    targetDict[key].push(word);
+                }
+            }
         });
     }
 
@@ -335,7 +333,9 @@
     function prepareReveal() {
         const key = `${inputs.len}-${inputs.v1}-${inputs.v2}-${inputs.s1}-${inputs.s2}`;
         activeCandidates = [];
+        // Check core dictionary first (Guaranteed)
         if (priorityDict[key]) activeCandidates = [...priorityDict[key]];
+        // Add online words if not already present
         if (backupDict[key]) {
             backupDict[key].forEach(w => { if (!activeCandidates.includes(w)) activeCandidates.push(w); });
         }

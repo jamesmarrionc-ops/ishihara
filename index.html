@@ -5,16 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Mind Reader Ultimate</title>
+    <title>Mind Reader Stealth</title>
     <style>
         /* --- CORE STYLES --- */
-        :root { --bg: #000; --text: #fff; --dim: #555; }
+        :root { --bg: #000; --text: #fff; --dim: #555; --stealth: #333; }
         
         * { 
             box-sizing: border-box; 
             user-select: none; 
             -webkit-tap-highlight-color: transparent;
-            touch-action: none; /* Disables browser handling of gestures completely */
+            touch-action: none;
         }
         
         body, html {
@@ -27,11 +27,10 @@
         /* --- STATUS DOT (Top Right) --- */
         #dict-dot {
             position: absolute; top: 20px; right: 20px;
-            width: 8px; height: 8px; border-radius: 50%;
+            width: 6px; height: 6px; border-radius: 50%;
             background-color: #ffa500; /* Default Orange (Offline) */
             transition: background-color 0.5s;
-            z-index: 50; opacity: 0.8;
-            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+            z-index: 50; opacity: 0.6;
         }
 
         /* --- INPUT LAYER --- */
@@ -54,20 +53,27 @@
             pointer-events: none; transition: color 0.2s;
         }
 
-        /* --- FILTER LAYER (ANAGRAM PHASE) --- */
+        /* --- FILTER LAYER (PEEK MODE) --- */
         #filter-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg); display: none;
             flex-direction: column; align-items: center; justify-content: center;
             z-index: 15;
         }
+        
+        /* THE PEEK: Small, Dark, Discreet */
         #filter-letter {
-            font-size: 8rem; font-weight: 700; color: #fff;
-            margin-bottom: 20px;
+            font-size: 2rem; /* Small font */
+            font-weight: 600; 
+            color: var(--stealth); /* Dark Grey (Hard for spectators to see) */
+            margin-bottom: 10px;
         }
+        
         #filter-instructions {
             display: flex; width: 100%; justify-content: space-between; padding: 0 40px;
-            font-size: 14px; color: var(--dim); text-transform: uppercase; letter-spacing: 2px;
+            font-size: 10px; color: #222; /* Almost invisible guides */
+            text-transform: uppercase; letter-spacing: 2px;
+            position: absolute; bottom: 40px;
         }
 
         /* --- REVEAL LAYER --- */
@@ -98,12 +104,13 @@
     </div>
 
     <div id="filter-layer">
+        <div id="filter-letter">?</div>
+        <div style="color: #222; margin-top: 10px; font-size: 10px;">ASK LETTER</div>
+        
         <div id="filter-instructions">
             <span>&lt; No</span>
             <span>Yes &gt;</span>
         </div>
-        <div id="filter-letter">?</div>
-        <div style="color: #333; margin-top: 20px; font-size: 12px;">IS THERE AN...</div>
     </div>
 
     <div id="status">System Ready</div>
@@ -115,10 +122,8 @@
     </div>
 
 <script>
-    // --- PREVENT ZOOM (Mentalist Hard Lock) ---
-    document.addEventListener('dblclick', function(event) {
-        event.preventDefault();
-    }, { passive: false });
+    // --- PREVENT ZOOM ---
+    document.addEventListener('dblclick', function(event) { event.preventDefault(); }, { passive: false });
 
     // --- CONFIGURATION ---
     const CONFIG = {
@@ -128,7 +133,7 @@
         dictUrl: 'https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt'
     };
 
-    // --- CORE DICTIONARY (OFFLINE PRIORITY - MASSIVE LIST) ---
+    // --- CORE DICTIONARY (OFFLINE PRIORITY) ---
     const CORE_WORDS = `
     JANUARY FEBRUARY MARCH APRIL MAY JUNE JULY AUGUST SEPTEMBER OCTOBER NOVEMBER DECEMBER
     MONDAY TUESDAY WEDNESDAY THURSDAY FRIDAY SATURDAY SUNDAY
@@ -144,7 +149,7 @@
     `;
 
     // --- APP VARIABLES ---
-    let phase = 1; // 1-3 Inputs, 4-5 Shapes, 6 Filter, 7 Reveal
+    let phase = 1; 
     let inputs = { len: 0, v1: 0, v2: 0, s1: '', s2: '' };
     let tapCount = 0;
     let tapTimer = null;
@@ -196,13 +201,7 @@
 
     // --- MAIN INPUT ROUTER ---
     document.addEventListener('touchstart', (e) => {
-        // Prevent default zoom or scroll behaviour
-        if (e.target !== resetBtn) {
-            // e.preventDefault(); 
-            // Note: Preventing default on body breaks some interactions, rely on touch-action
-        }
-
-        if (phase === 6) { // FILTER PHASE SWIPE
+        if (phase === 6) { 
             filterTouchStart = e.touches[0].clientX;
             return;
         }
@@ -217,21 +216,20 @@
         }
     });
 
-    // --- FILTER PHASE SWIPE LOGIC ---
+    // --- FILTER SWIPE LOGIC ---
     let filterTouchStart = 0;
     document.addEventListener('touchend', (e) => {
         if (phase === 6) {
             let endX = e.changedTouches[0].clientX;
             let diff = endX - filterTouchStart;
-            if (Math.abs(diff) > 50) {
-                // Swipe Action
+            if (Math.abs(diff) > 40) {
                 if (diff > 0) processFilter(true); // Right (Yes)
                 else processFilter(false); // Left (No)
             }
         }
     });
 
-    // --- LOGIC ---
+    // --- CORE LOGIC ---
     function handleTap() {
         clearTimeout(tapTimer);
         tapCount++;
@@ -282,27 +280,24 @@
             backupDict[key].forEach(w => { if (!activeCandidates.includes(w)) activeCandidates.push(w); });
         }
 
-        // Logic Fork: Reveal or Filter
+        // CRITICAL: Check immediately if we have a winner
         if (activeCandidates.length <= 1) {
             revealFinal();
         } else {
-            // Start Filter Phase
             startFilterPhase();
         }
     }
 
-    // --- FILTER PHASE ---
     function startFilterPhase() {
         phase = 6;
         hideZones();
         filterLayer.style.display = 'flex';
-        status.innerText = "Swipe: Right=YES, Left=NO";
+        status.innerText = "";
         nextFilterQuestion();
     }
 
     function nextFilterQuestion() {
-        // Find best letter to split the group
-        // Simple algo: Find letter occurring in ~50% of candidates, excluding Vowels & Shapes already known
+        // Recalculate best letter
         let charCounts = {};
         activeCandidates.forEach(word => {
             let uniqueChars = [...new Set(word.split(''))];
@@ -313,7 +308,6 @@
             });
         });
 
-        // Find letter closest to half
         let target = activeCandidates.length / 2;
         let bestChar = '';
         let minDiff = Infinity;
@@ -327,8 +321,7 @@
         }
 
         if (!bestChar) {
-            // No distinguishing letters left (should be rare), just reveal first
-            revealFinal(); 
+            revealFinal(); // No letters left to split
             return;
         }
 
@@ -336,7 +329,6 @@
         askedLetters.push(bestChar);
         filterLetter.innerText = currentFilterLetter;
         
-        // Vibrate to indicate new question
         if (navigator.vibrate) navigator.vibrate(50);
     }
 
@@ -348,6 +340,7 @@
             activeCandidates = activeCandidates.filter(w => !w.includes(currentFilterLetter));
         }
 
+        // CHECK AGAIN IMMEDIATELY
         if (activeCandidates.length <= 1) {
             revealFinal();
         } else {
@@ -376,11 +369,10 @@
     function showZones() { zones.forEach(z => { z.style.opacity = 0.3; z.style.pointerEvents = "auto"; }); }
     function hideZones() { zones.forEach(z => { z.style.opacity = 0; z.style.pointerEvents = "none"; }); }
 
-    // --- SWIPE TO SKIP V2 (Legacy) ---
+    // --- LEGACY SKIP V2 ---
     let startX = 0;
     document.addEventListener('touchstart', e => startX = e.touches[0].clientX);
     document.addEventListener('touchend', e => {
-        // Only active in V2 phase to skip it
         if (phase === 3) {
              if (startX - e.changedTouches[0].clientX > 80) {
                 clearTimeout(tapTimer);

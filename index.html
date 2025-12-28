@@ -2,9 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    
     <title>Blackout</title>
     <style>
         /* --- CORE STYLES --- */
@@ -53,7 +59,7 @@
             pointer-events: none; transition: color 0.2s;
         }
 
-        /* --- FILTER LAYER (The Flashing Part) --- */
+        /* --- FILTER LAYER --- */
         #filter-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg); display: none;
@@ -62,23 +68,34 @@
         }
         
         #filter-letter {
-            font-size: 4rem; /* Big for single letters */
-            font-weight: 300; color: #222; margin-bottom: 0px;
+            font-size: 4rem; 
+            font-weight: 300; color: #222; margin-bottom: 20px;
             text-align: center;
-            transition: font-size 0.2s ease-out; /* Smooth shrink/grow animation */
         }
         
         #filter-instructions {
             display: flex; width: 100%; justify-content: space-between; padding: 0 40px;
             font-size: 10px; color: #111; text-transform: uppercase; letter-spacing: 2px;
-            position: absolute; bottom: 40px;
-            transition: opacity 0.2s;
+            position: absolute; bottom: 50%; transform: translateY(60px);
+        }
+
+        /* NEW: CANDIDATE LIST AT BOTTOM */
+        #candidate-list {
+            position: absolute; bottom: 40px; left: 0; width: 100%;
+            padding: 0 20px;
+            text-align: center;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #333; /* Dark grey: Visible to you, hard for others */
+            font-family: monospace;
+            text-transform: uppercase;
+            overflow-wrap: break-word;
         }
 
         /* --- REVEAL LAYER --- */
         #reveal-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; /* Pure Black */
+            background: #000;
             display: none;
             flex-direction: column; align-items: center; justify-content: center;
             z-index: 20; padding: 20px;
@@ -115,6 +132,7 @@
             <span>&lt; No</span>
             <span>Yes &gt;</span>
         </div>
+        <div id="candidate-list"></div> 
     </div>
 
     <div id="status">System Ready</div>
@@ -136,7 +154,7 @@
         dictUrl: 'https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt'
     };
 
-    // --- CORE DICTIONARY (INCLUDES ADJECTIVES & ANIMALS) ---
+    // --- CORE DICTIONARY ---
     const CORE_WORDS = `
     JANUARY FEBRUARY MARCH APRIL MAY JUNE JULY AUGUST SEPTEMBER OCTOBER NOVEMBER DECEMBER
     MONDAY TUESDAY WEDNESDAY THURSDAY FRIDAY SATURDAY SUNDAY
@@ -162,6 +180,7 @@
     let activeCandidates = [];
     let currentFilterLetter = '';
     let askedLetters = [];
+    let wakeLock = null; // To keep screen awake
 
     const status = document.getElementById('status');
     const dot = document.getElementById('dict-dot');
@@ -169,22 +188,38 @@
     const resetZone = document.getElementById('reset-zone');
     const filterLayer = document.getElementById('filter-layer');
     const filterLetter = document.getElementById('filter-letter');
-    const filterInstructions = document.getElementById('filter-instructions');
+    const candidateList = document.getElementById('candidate-list');
 
     // --- INITIALIZATION ---
     async function init() {
-        // 1. Load Core Words (Safe)
+        // 1. Load Words
         parseWords(CORE_WORDS, priorityDict);
-        
-        // 2. Try Online Words (With Memory Protection)
         try {
             const res = await fetch(CONFIG.dictUrl);
             if (!res.ok) throw new Error("Net Err");
             const text = await res.text();
             parseWords(text, backupDict);
-            dot.style.backgroundColor = "#fff"; // WHITE = Online
+            dot.style.backgroundColor = "#fff"; 
         } catch (e) {
-            dot.style.backgroundColor = "#ffa500"; // ORANGE = Offline
+            dot.style.backgroundColor = "#ffa500"; 
+        }
+
+        // 2. Request Wake Lock (Keep Screen On)
+        requestWakeLock();
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        });
+    }
+
+    async function requestWakeLock() {
+        try {
+            if ('wakeLock' in navigator) {
+                wakeLock = await navigator.wakeLock.request('screen');
+            }
+        } catch (err) {
+            console.log('Wake Lock Error:', err);
         }
     }
 
@@ -215,11 +250,13 @@
     // --- MAIN INPUT ROUTER & SWIPES ---
     let touchStartX = 0;
     let touchStartY = 0;
-    let isFiltering = false; // Flag to prevent multi-swipe during flash
 
     document.addEventListener('touchstart', (e) => {
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
+
+        // Wake lock refresh on touch
+        if (!wakeLock) requestWakeLock();
 
         if (e.target.id === 'reset-zone') {
              e.stopPropagation();
@@ -246,7 +283,7 @@
         }
 
         // --- FILTER PHASE SWIPES (Left/Right) ---
-        if (phase === 6 && !isFiltering) {
+        if (phase === 6) {
             if (Math.abs(diffX) > 40) {
                 if (diffX > 0) processFilter(true); // Right (Yes)
                 else processFilter(false); // Left (No)
@@ -349,6 +386,7 @@
         hideZones();
         filterLayer.style.display = 'flex';
         status.innerText = "";
+        updateCandidateList(); // Show initial list
         nextFilterQuestion();
     }
 
@@ -378,43 +416,23 @@
     }
 
     function processFilter(isYes) {
-        isFiltering = true; // Block touches
-
         // 1. FILTER LOGIC
         if (isYes) activeCandidates = activeCandidates.filter(w => w.includes(currentFilterLetter));
         else activeCandidates = activeCandidates.filter(w => !w.includes(currentFilterLetter));
 
-        // 2. FLASHING ANIMATION
-        const instructions = document.getElementById('filter-instructions');
-        const display = document.getElementById('filter-letter');
+        // 2. UPDATE LIST INSTANTLY
+        updateCandidateList();
 
-        instructions.style.opacity = 0; // Hide instructions
-        display.style.fontSize = "1.5rem"; // Shrink for word display
+        // 3. CHECK NEXT STEP
+        if (activeCandidates.length <= 1) revealFinal();
+        else nextFilterQuestion();
+    }
 
-        let counter = 0;
-        const totalFlashes = 10; // Number of flickers
-
-        const flashInterval = setInterval(() => {
-            if (activeCandidates.length > 0) {
-                // Pick random word from remaining list
-                const rand = activeCandidates[Math.floor(Math.random() * activeCandidates.length)];
-                display.innerText = rand;
-            } else {
-                display.innerText = "...";
-            }
-            counter++;
-
-            // 3. END ANIMATION
-            if (counter >= totalFlashes) {
-                clearInterval(flashInterval);
-                display.style.fontSize = "4rem"; // Restore size
-                instructions.style.opacity = 1;
-                isFiltering = false;
-
-                if (activeCandidates.length <= 1) revealFinal();
-                else nextFilterQuestion();
-            }
-        }, 50); // Speed of flicker (ms)
+    function updateCandidateList() {
+        // Displays possible words at the bottom. 
+        // We limit to first 6 to prevent screen clutter, or show all if you prefer.
+        // Currently set to show ALL valid candidates separated by spaces.
+        candidateList.innerText = activeCandidates.join("  ");
     }
 
     function revealFinal() {

@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Search</title>
     <style>
-        /* --- MODERN RESET & BASE --- */
+        /* --- CORE STYLE & NO SCROLL FIX --- */
         :root {
             --bg-color: #000000;
             --text-primary: #ffffff;
@@ -21,7 +21,8 @@
             width: 100%; height: 100%;
             background-color: var(--bg-color);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            overflow: hidden;
+            overflow: hidden; /* KILLS SCROLLING */
+            position: fixed; /* LOCKS VIEWPORT */
             color: var(--text-primary);
             cursor: default;
         }
@@ -50,7 +51,7 @@
         /* --- STATUS TEXT --- */
         #status {
             position: absolute; 
-            bottom: 120px; 
+            bottom: 140px; /* Moved up slightly */
             left: 0; width: 100%;
             text-align: center; 
             color: var(--text-secondary); 
@@ -118,7 +119,7 @@
         <div class="shape-zone" id="bot-zone" data-shape="M">MIXED (B, D, G, P, R...)</div>
     </div>
 
-    <div id="status">Initializing...</div>
+    <div id="status">System Initializing...</div>
 
     <div id="reveal-layer">
         <div class="label">Result</div>
@@ -130,10 +131,10 @@
 <script>
     // --- CONFIG ---
     const TAP_TIMEOUT = 2500; 
-    const MIN_WORD_LEN = 6; // STRICT FILTER: 6+ LETTERS ONLY
+    const MIN_WORD_LEN = 6; 
     const MAX_WORD_LEN = 15;
 
-    // --- MANUAL SAFETY NET ---
+    // --- MANUAL SAFETY NET (For Words not in common lists) ---
     const MANUAL_INJECTION = [
         "PHILIPPINES", "SINGAPORE", "MALAYSIA", "INDONESIA", "THAILAND", 
         "AUSTRALIA", "AMERICA", "SWITZERLAND", "ARGENTINA", "PORTUGAL",
@@ -156,35 +157,19 @@
 
     // --- 1. INIT ---
     async function init() {
-        status.innerText = "Downloading Dictionary (Large)...";
+        status.innerText = "Loading Smart Database...";
         try {
-            // LOAD HUGE DICTIONARY (Words Alpha)
-            const res = await fetch('https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt');
-            
-            // READ STREAM FOR PROGRESS (Optional polish, keeping simple text for now)
+            // REVERTED TO 20K COMMON LIST (Removes 'ABBACIES', keeps 'INSIGHTS')
+            const res = await fetch('https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-20000-english-no-swears.txt');
             const text = await res.text();
-            status.innerText = "Processing Data...";
+            
+            // PROCESS COMMON WORDS
+            text.split('\n').forEach(word => addToDict(word));
 
-            // SPLIT & FILTER
-            const rawWords = text.split('\r\n'); // Usually CRLF in this file
-            let count = 0;
-
-            rawWords.forEach(word => {
-                // HANDLE NEWLINE VARIATIONS
-                word = word.trim().toUpperCase();
-                
-                // FILTER: MUST BE 6+ LETTERS
-                if(word.length < MIN_WORD_LEN || word.length > MAX_WORD_LEN) return;
-                
-                addToDict(word);
-                count++;
-            });
-
-            // INJECT MANUAL WORDS
+            // INJECT MANUAL WORDS (For Countries/Planets)
             MANUAL_INJECTION.forEach(word => addToDict(word));
             
             status.innerText = "Ready";
-            console.log(`Loaded ${count} words.`);
 
         } catch(e) {
             status.innerText = "Offline Mode (Safety Net Only)";
@@ -193,6 +178,10 @@
     }
 
     function addToDict(word) {
+        word = word.trim().toUpperCase();
+        // FILTER: 6+ LETTERS ONLY
+        if(word.length < MIN_WORD_LEN || word.length > MAX_WORD_LEN) return;
+
         const v = getVowels(word);
         let v1 = v[0] || 0; 
         let v2 = v[1] || 0;
@@ -203,6 +192,7 @@
 
         const key = `${len}-${v1}-${v2}-${s1}-${s2}`;
         if (!dictionary[key]) dictionary[key] = [];
+        // Only add if not duplicate
         if (!dictionary[key].includes(word)) dictionary[key].push(word);
     }
 
@@ -280,7 +270,7 @@
 
         if (matches && matches.length > 0) {
             pWord.innerText = matches[0];
-            // Limit shown alternatives to 5 to keep UI clean
+            // Show up to 5 alternatives
             aWord.innerText = matches.length > 1 ? matches.slice(1,6).join("   ") : "";
         } else {
             pWord.innerText = "NO MATCH";
@@ -292,6 +282,7 @@
     }
 
     // --- 6. GESTURES & RESET ---
+    // Swipe Left Skip (Phase 3)
     let startX = 0;
     document.addEventListener('touchstart', e => startX = e.touches[0].clientX);
     document.addEventListener('touchend', e => {
@@ -313,10 +304,9 @@
     function getShape(char) {
         if (!char) return "S";
         const c = char.toUpperCase(); 
-        // CAPITAL LETTER LOGIC
         if ("COSU".includes(c)) return "C"; // Curved
-        if ("BDGJPQR".includes(c)) return "M"; // Mixed (Straight + Curve)
-        return "S"; // Straight (A, E, F, H, I, K, L, M, N, T, V, W, X, Y, Z)
+        if ("BDGJPQR".includes(c)) return "M"; // Mixed
+        return "S"; // Straight
     }
     function getVowels(word) {
         const vowels = "AEIOU";

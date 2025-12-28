@@ -1,172 +1,189 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Magic Printer</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
-    <style>
-        body { background-color: #000; color: #fff; font-family: -apple-system, sans-serif; text-align: center; padding: 20px; display: flex; flex-direction: column; height: 90vh; justify-content: center; }
-        
-        .btn {
-            display: block; width: 100%; padding: 25px; margin: 15px 0;
-            font-size: 20px; font-weight: bold; border-radius: 12px; border: none;
-            cursor: pointer; text-transform: uppercase;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Google</title> <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000; /* OLED Black */
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #333;
         }
-        
-        .btn-blue { background: #007AFF; color: white; }
-        .btn-green { background: #34C759; color: black; box-shadow: 0 0 20px #34C759; }
-        .btn-gray { background: #333; color: #777; }
 
-        #status { margin-top: 15px; color: #888; font-size: 14px; }
-        #preview { width: 200px; border: 2px solid #333; margin: 20px auto; display: none; filter: grayscale(100%); border-radius: 10px; }
+        /* The Invisible Grid */
+        #touch-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+        }
+
+        .zone {
+            /* border: 1px solid #333; Remove this border for performance */ 
+        }
+
+        /* Feedback (Vibration helper) */
+        #feedback {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: #222; /* Almost invisible text for debugging */
+            pointer-events: none;
+            font-size: 12px;
+        }
+
+        /* The Reveal Screen */
+        #reveal-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+        }
+
+        #reveal-word {
+            font-size: 3rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .google-header {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #5f6368;
+        }
     </style>
 </head>
 <body>
 
-    <h2 id="mainStatus">STEP 1: CONNECT</h2>
+    <div id="touch-layer">
+        <div class="zone" id="z1" data-val="1"></div> <div class="zone" id="z2" data-val="2"></div> <div class="zone" id="z3" data-val="3"></div> <div class="zone" id="z4" data-val="4"></div> </div>
 
-    <button id="connectBtn" class="btn btn-blue" onclick="connectBluetooth()">🔌 CONNECT PRINTER</button>
+    <div id="feedback">Waiting...</div>
+
+    <div id="reveal-layer">
+        <div class="google-header">Did you mean:</div>
+        <div id="reveal-word">WORD</div>
+    </div>
+
+<script>
+    // --- 1. THE DATABASE (Mini Dictionary) ---
+    // In a real app, this would be 5,000+ words.
+    // Format: "WORD": [Zone Sequence]
+    // 1=Vowel, 2=RSTLN, 3=BCDFGHMP, 4=Rare
     
-    <button id="pasteBtn" class="btn btn-gray" onclick="pasteAndPrint()" style="display:none;" disabled>
-        📋 PASTE & PRINT
-    </button>
+    const dictionary = {
+        "APPLE": "13321", // A(1) P(3) P(3) L(2) E(1)
+        "WATER": "41212", // W(4) A(1) T(2) E(1) R(2)
+        "MAGIC": "31313", // M(3) A(1) G(3) I(1) C(3)
+        "PHONE": "33121", // P(3) H(3) O(1) N(2) E(1)
+        "TIGER": "21312", // T(2) I(1) G(3) E(1) R(2)
+        "ZEBRA": "41321", // Z(4) E(1) B(3) R(2) A(1)
+        "HOUSE": "31121", // H(3) O(1) U(1) S(2) E(1)
+        "CHAIR": "33112", // C(3) H(3) A(1) I(1) R(2)
+        "MUSIC": "31213", // M(3) U(1) S(2) I(1) C(3)
+        "PIZZA": "31441"  // P(3) I(1) Z(4) Z(4) A(1)
+    };
 
-    <img id="preview" alt="Preview">
-    <div id="status">Ready...</div>
+    let currentSequence = "";
     
-    <canvas id="processCanvas" style="display:none;"></canvas>
+    // --- 2. INPUT HANDLING ---
+    
+    const zones = document.querySelectorAll('.zone');
+    const feedback = document.getElementById('feedback');
+    const revealLayer = document.getElementById('reveal-layer');
+    const revealText = document.getElementById('reveal-word');
 
-    <script>
-        // --- BLUETOOTH CONFIG ---
-        const PRINTER_WIDTH = 384; 
-        const CHUNK_SIZE = 100;
-        let device, characteristic;
+    // Add Touch Listeners
+    zones.forEach(zone => {
+        zone.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevent zoom/scroll
+            handleInput(zone.dataset.val);
+        });
+    });
 
-        const serviceUuid = '000018f0-0000-1000-8000-00805f9b34fb';
-        const charUuid = '00002af1-0000-1000-8000-00805f9b34fb';
+    function handleInput(val) {
+        currentSequence += val;
+        
+        // Vibration Feedback (Stealth)
+        if (navigator.vibrate) navigator.vibrate(50); 
+        
+        // Show debug code (Make this invisible in performance)
+        feedback.innerText = currentSequence; 
 
-        // --- 1. CONNECT (BROADER SEARCH) ---
-        async function connectBluetooth() {
-            try {
-                updateStatus("Scanning...");
-                // REMOVED strict name filter. Now searches for ANY PeriPage.
-                device = await navigator.bluetooth.requestDevice({
-                    filters: [{ namePrefix: 'PeriPage' }],
-                    optionalServices: [serviceUuid]
-                });
+        // Check for match automatically (Optional)
+        // checkMatch();
+    }
 
-                const server = await device.gatt.connect();
-                const service = await server.getPrimaryService(serviceUuid);
-                characteristic = await service.getCharacteristic(charUuid);
-                
-                // Switch UI
-                document.getElementById('connectBtn').style.display = 'none';
-                document.getElementById('pasteBtn').style.display = 'block';
-                document.getElementById('pasteBtn').className = "btn btn-green";
-                document.getElementById('pasteBtn').disabled = false;
-                document.getElementById('mainStatus').innerText = "STEP 2: PRINT";
-                
-                updateStatus("Connected! Copy photo and click Paste.");
+    // --- 3. REVEAL LOGIC (Swipe Up) ---
+    
+    let touchStartY = 0;
+    document.addEventListener('touchstart', e => {
+        touchStartY = e.changedTouches[0].screenY;
+    });
 
-            } catch (error) {
-                updateStatus("Connect Failed: " + error);
+    document.addEventListener('touchend', e => {
+        let touchEndY = e.changedTouches[0].screenY;
+        
+        // Detect Upward Swipe
+        if (touchStartY - touchEndY > 100) { 
+            findWord();
+        }
+        
+        // Detect Double Tap (Center) to Reset
+        // (Implementation omitted for brevity, add simpler reset button for now)
+    });
+    
+    function findWord() {
+        // Simple exact match search
+        // In "Better" version, use Fuzzy Search if you missed a letter
+        const match = Object.keys(dictionary).find(key => dictionary[key] === currentSequence);
+        
+        if (match) {
+            showReveal(match);
+        } else {
+            // If no exact match, show the closest partial match
+            const partial = Object.keys(dictionary).find(key => dictionary[key].startsWith(currentSequence));
+            if(partial) {
+                showReveal(partial + "?");
+            } else {
+                feedback.innerText = "No Match";
+                navigator.vibrate([100, 50, 100]); // Error buzz
             }
         }
+    }
 
-        // --- 2. PASTE FROM CLIPBOARD ---
-        async function pasteAndPrint() {
-            try {
-                updateStatus("Reading Clipboard...");
-                
-                // Read Clipboard Items
-                const clipboardItems = await navigator.clipboard.read();
-                for (const item of clipboardItems) {
-                    // Find an image type
-                    const type = item.types.find(t => t.startsWith('image/'));
-                    if (type) {
-                        const blob = await item.getType(type);
-                        const img = new Image();
-                        img.onload = function() {
-                            // Show Preview
-                            document.getElementById('preview').src = img.src;
-                            document.getElementById('preview').style.display = 'block';
-                            processAndPrint(img);
-                        };
-                        img.src = URL.createObjectURL(blob);
-                        return;
-                    }
-                }
-                alert("No image found in clipboard!");
-            } catch (err) {
-                // Fallback for browsers blocking clipboard read
-                alert("Clipboard access denied. Please allow paste.");
-                updateStatus("Error: " + err);
-            }
-        }
+    function showReveal(word) {
+        revealText.innerText = word;
+        revealLayer.style.display = 'flex';
+        navigator.vibrate(200); // Success buzz
+    }
 
-        // --- 3. PRINTING LOGIC ---
-        function processAndPrint(img) {
-            updateStatus("Processing...");
-            const canvas = document.getElementById('processCanvas');
-            const ctx = canvas.getContext('2d');
-            
-            const scale = PRINTER_WIDTH / img.width;
-            const height = Math.floor(img.height * scale);
-            canvas.width = PRINTER_WIDTH;
-            canvas.height = height;
-            
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0, PRINTER_WIDTH, height);
+    // Reset by tapping the reveal screen
+    revealLayer.addEventListener('click', () => {
+        revealLayer.style.display = 'none';
+        currentSequence = "";
+        feedback.innerText = "Waiting...";
+    });
 
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-
-            // Dither
-            for (let i = 0; i < data.length; i += 4) {
-                const avg = (data[i] + data[i+1] + data[i+2]) / 3;
-                data[i] = data[i+1] = data[i+2] = avg < 128 ? 0 : 255;
-            }
-            
-            printData(data, PRINTER_WIDTH, height);
-        }
-
-        async function printData(pixels, width, height) {
-            updateStatus("Printing...");
-            const rowBytes = width / 8;
-            const bitBuffer = new Uint8Array(rowBytes * height);
-
-            for (let y = 0; y < height; y++) {
-                for (let x = 0; x < width; x++) {
-                    const i = (y * width + x) * 4;
-                    if (pixels[i] === 0) { 
-                        const bytePos = (y * rowBytes) + Math.floor(x / 8);
-                        bitBuffer[bytePos] |= (1 << (7 - (x % 8)));
-                    }
-                }
-            }
-
-            const chunks = Math.ceil(height / CHUNK_SIZE);
-            for (let c = 0; c < chunks; c++) {
-                const start = c * CHUNK_SIZE;
-                const end = Math.min((c+1)*CHUNK_SIZE, height);
-                const h = end - start;
-                
-                const header = new Uint8Array([0x1D, 0x76, 0x30, 0x00, rowBytes, 0x00, h & 0xFF, (h >> 8) & 0xFF]);
-                const body = bitBuffer.slice(start * rowBytes, end * rowBytes);
-                const packet = new Uint8Array(header.length + body.length);
-                packet.set(header);
-                packet.set(body, header.length);
-                
-                await characteristic.writeValue(packet);
-                await new Promise(r => setTimeout(r, 20));
-            }
-            await characteristic.writeValue(new Uint8Array([0x1B, 0x4A, 150])); 
-            updateStatus("DONE!");
-        }
-
-        function updateStatus(msg) {
-            document.getElementById('status').innerText = msg;
-        }
-    </script>
+</script>
 </body>
 </html>

@@ -173,7 +173,7 @@
         dictUrl: 'https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt'
     };
 
-    // --- EXPANDED CORE DICTIONARY (Nature Update) ---
+    // --- CORE DICTIONARY (High Priority Manual List) ---
     const CORE_WORDS = `
     VAGINA PENIS ORGASM NAKED BREAST MURDER DEATH KILLER SUICIDE POISON BLOOD GHOST SPIRIT DEMON ANGEL DEVIL HEAVEN HELL MAGIC WITCH PSYCHIC TAROT ZODIAC
     JANUARY FEBRUARY AUGUST SEPTEMBER OCTOBER NOVEMBER DECEMBER
@@ -201,8 +201,8 @@
     let inputs = { len: 0, v1: 0, v2: 0, s1: '', s2: '' };
     let tapCount = 0;
     let tapTimer = null;
-    let priorityDict = {}; 
-    let backupDict = {};   
+    let priorityList = [];
+    let onlineWordList = []; // Raw array of all 370k words
     let activeCandidates = [];
     let currentFilterLetter = '';
     let askedLetters = [];
@@ -218,13 +218,18 @@
 
     // --- INITIALIZATION ---
     async function init() {
-        parseWords(CORE_WORDS, priorityDict);
+        // 1. Process Core Words immediately
+        priorityList = CORE_WORDS.split(/[\s,\r\n]+/).map(w => w.trim().toUpperCase()).filter(w => w.length >= CONFIG.minLen);
 
+        // 2. Fetch Online Words but DO NOT bucket them yet (Lazy Load)
         try {
             const res = await fetch(CONFIG.dictUrl);
             if (!res.ok) throw new Error("Net Err");
             const text = await res.text();
-            parseWords(text, backupDict);
+            
+            // Just split them into a giant array. Memory efficient.
+            onlineWordList = text.split(/[\s,\r\n]+/).filter(w => w.length >= CONFIG.minLen);
+            
             dot.style.backgroundColor = "#00ff00"; 
             dot.style.boxShadow = "0 0 5px #00ff00";
         } catch (e) {
@@ -239,44 +244,13 @@
         try {
             if ('wakeLock' in navigator) {
                 wakeLock = await navigator.wakeLock.request('screen');
-                console.log("Wake Lock Active");
             }
-        } catch (err) {
-            console.log('Wake Lock Error:', err);
-        }
+        } catch (err) { console.log('Wake Lock Error:', err); }
     }
     
     document.addEventListener('visibilitychange', async () => {
-        if (wakeLock !== null && document.visibilityState === 'visible') {
-            requestWakeLock();
-        }
+        if (wakeLock !== null && document.visibilityState === 'visible') { requestWakeLock(); }
     });
-
-    function parseWords(text, targetDict) {
-        const words = text.split(/[\s,\r\n]+/);
-        for (let i = 0; i < words.length; i++) {
-            const w = words[i].trim().toUpperCase();
-            if (w.length < CONFIG.minLen || w.length > CONFIG.maxLen) continue;
-
-            const v = getVowels(w);
-            let v1 = v[0] || 0;
-            let v2 = v[1] || 0;
-            const s1 = getShape(w[0]);
-            const s2 = getShape(w[w.length-1]);
-            const len = w.length;
-            
-            const key = `${len}-${v1}-${v2}-${s1}-${s2}`;
-            if (!targetDict[key]) targetDict[key] = [];
-            
-            if (!targetDict[key].includes(w)) {
-                if (targetDict === priorityDict && targetDict[key].length < 50) {
-                    targetDict[key].push(w);
-                } else if (targetDict === backupDict && targetDict[key].length < 200) {
-                    targetDict[key].push(w);
-                }
-            }
-        }
-    }
 
     // --- MAIN INPUT ROUTER & SWIPES ---
     let touchStartX = 0;
@@ -389,16 +363,48 @@
         }
     }
 
+    // --- JUST-IN-TIME (JIT) SCANNING ---
     function prepareReveal() {
-        const key = `${inputs.len}-${inputs.v1}-${inputs.v2}-${inputs.s1}-${inputs.s2}`;
         activeCandidates = [];
+        const seen = new Set();
 
-        if (priorityDict[key]) {
-            activeCandidates = [...priorityDict[key]];
-        }
-        if (backupDict[key]) {
-            backupDict[key].forEach(w => {
-                if (!activeCandidates.includes(w)) activeCandidates.push(w);
+        // Helper to check if a word matches our inputs
+        const isMatch = (w) => {
+            w = w.toUpperCase();
+            if (w.length !== inputs.len) return false;
+            
+            // Check Shapes (Fastest Fail)
+            const s1 = getShape(w[0]);
+            if (s1 !== inputs.s1) return false;
+            
+            const s2 = getShape(w[w.length-1]);
+            if (s2 !== inputs.s2) return false;
+
+            // Check Vowels (Slower)
+            const v = getVowels(w);
+            const v1 = v[0] || 0;
+            const v2 = v[1] || 0;
+            return (v1 === inputs.v1 && v2 === inputs.v2);
+        };
+
+        // 1. Scan Priority List
+        priorityList.forEach(w => {
+            if (isMatch(w) && !seen.has(w)) {
+                activeCandidates.push(w);
+                seen.add(w);
+            }
+        });
+
+        // 2. Scan Online List (JIT - No limits)
+        if (onlineWordList.length > 0) {
+            onlineWordList.forEach(w => {
+                // Optimization: check length property first to avoid function call overhead
+                if (w.length === inputs.len) { 
+                    if (isMatch(w) && !seen.has(w.toUpperCase())) {
+                        activeCandidates.push(w.toUpperCase());
+                        seen.add(w.toUpperCase());
+                    }
+                }
             });
         }
 
@@ -468,10 +474,7 @@
             const finalWord = activeCandidates[0];
             pWord.innerText = finalWord;
             aWord.innerText = activeCandidates.length > 1 ? activeCandidates.slice(1).join(" ") : "";
-            
-            // --- ROBUST CLIPBOARD COPY ---
             forceCopyToClipboard(finalWord);
-            
         } else {
             pWord.innerText = "No Match";
             aWord.innerText = `${inputs.len}-${inputs.v1}-${inputs.v2} (${inputs.s1}/${inputs.s2})`;
@@ -479,22 +482,15 @@
         document.getElementById('reveal-layer').style.display = 'flex';
     }
 
-    // --- "FORCE" CLIPBOARD FUNCTION ---
     function forceCopyToClipboard(text) {
-        // 1. Try Standard API
         if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).catch(err => {
-                // If standard fails, use fallback
-                fallbackCopy(text);
-            });
+            navigator.clipboard.writeText(text).catch(err => fallbackCopy(text));
         } else {
-            // If standard not available, use fallback
             fallbackCopy(text);
         }
     }
 
     function fallbackCopy(text) {
-        // 2. Fallback: Create invisible text area
         const textArea = document.createElement("textarea");
         textArea.value = text;
         textArea.style.position = "fixed"; 
@@ -503,13 +499,7 @@
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
-        
-        try {
-            document.execCommand('copy');
-        } catch (err) {
-            console.error('Fallback copy failed', err);
-        }
-        
+        try { document.execCommand('copy'); } catch (err) {}
         document.body.removeChild(textArea);
     }
 
